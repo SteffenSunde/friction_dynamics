@@ -1,0 +1,74 @@
+#include "single_rate_sine.hpp"
+#include "multi_rate_sine.hpp"
+
+#include <boost/program_options.hpp>
+//#include "yaml-cpp/yaml.h"
+
+#include <iostream>
+#include <vector>
+
+namespace po = boost::program_options;
+
+int main(int argc, const char* argv[]) 
+{
+    try {
+        po::options_description desc{"Allowed options"};
+        desc.add_options()
+            ("help,h", "Display help message")
+            ("input,i", po::value<std::string>(), "Run simulator on given YAML input file")
+            ("integrators", "List available integrators")
+            ("todo", "Display most important TODOS.")
+            ("SingleRateSine", "Single block with rate-dependent friction and Sine driver.")
+            ("HertzRateSine", "N (100) blocks with rate-and state dependent friction and sine driver.")
+        ;
+
+        po::variables_map vm;
+        po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
+        po::store(parsed, vm);
+        po::notify(vm);   
+        std::vector<std::string> unrecognized = po::collect_unrecognized(parsed.options, po::include_positional);
+
+        // for (auto el: vm) {
+        //     std::cout << el.first << "; ";
+        // }
+
+        if (vm.empty()) {
+            std::cout << "Spring-block simulator. See --help for more info.\n";
+        } else if (vm.count("help")) {
+            std::cout << desc << "\n";
+        } else if (unrecognized.size() > 0) {
+            std::cout << "Error: Did not understand the following parameters\n";
+            for (auto c: unrecognized) std::cout << c << " ";
+            std::cout << ". \n Please see the --help command";
+        } else if( vm.count("integrators")) {
+            std::cout << "None\n";
+        } else if (vm.count("SingleRateSine")) {
+            std::cout << "Running single block with Rate-dependent friction and sinde-driver.\n";
+            if (!vm["input"].empty()) {
+                single_rate_sine(vm["input"].as<std::string>());
+            // } else if (!vm["input"].empty()) {
+            //     single_rate_sine());
+            } else {
+                // double frequency = vm["frequency"].as<double>();
+                // int transient_periods = vm["transients"].as<int>();
+                // int num_intersections = vm["intersections"].as<int>();
+                std::cout << "Running a series of hard-coded poincaré sections\n";
+                for (auto frequency : {10.0, 15.0, 19.0, 19.5, 20.0}) {
+                    single_rate_sine(frequency, 100, (int)1e6);
+                }
+            }
+        } else if (vm.count("HertzRateSine")) {
+            std::cout << "Running HertzRateSine model with standard parameters\n";
+            //hertz_rate_sine();
+            //hertz_rate_sine_shear();
+            calculate_multi_poincare_sections();
+        } else if (vm.count("input")) {
+            std::string const& file = vm["input"].as<std::string>();
+            std::cout << "Running on input-file " << file << "\n";
+        }
+    } catch (const po::error& ex) {
+        std::cerr << ex.what() << "\n";
+    }
+
+    return 0;
+} 
