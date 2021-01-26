@@ -8,14 +8,20 @@ from scipy.signal import find_peaks
 from math import pi, log10
 
 def main(dof=0):
-    file = "data/shear_13.000000Hz_100blocks.csv"
-    frequency = 10
+    file = "data/slip_13.000000Hz_100blocks.csv"
+    frequency = 13
     displacement = 0.01
     df = pd.read_csv(file)
-    plot_result(df.iloc[:,0].values, df.iloc[:,1].values, df.iloc[:,2].values, df.iloc[:,3].values, df.iloc[:,4].values, frequency, displacement)
+    plot_result(
+        df.iloc[:,0].values, 
+        df.iloc[:,1].values, 
+        df.iloc[:,2].values, 
+        df.iloc[:,3].values, 
+        df.iloc[:,4].values, 
+        frequency)
 
 
-def plot_result(time, values1, values2, values3, values4, frequency_peaks=True, meta=""):
+def plot_result(time, values1, values2, values3, values4, frequency, frequency_peaks=True, meta=""):
     dt = time[1]-time[0]  # Note: assuming equispaced timesteps.
     num_steps = len(time)
 
@@ -50,6 +56,7 @@ def plot_result(time, values1, values2, values3, values4, frequency_peaks=True, 
     #ax3.plot(freq[1:], power_spectrum[1:])
     ax1.plot(xf1, yf1[:num_steps//2])
     xmax, ymax = calc_fft_limits(xf1, yf1)
+    xmax = max(xmax, frequency)
     ax1.set_xlim((0, xmax))
     order1 = int(log10(ymax))
     #ax1.set_ylim((0, ymax))
@@ -64,6 +71,7 @@ def plot_result(time, values1, values2, values3, values4, frequency_peaks=True, 
 
     ax2.plot(xf2, yf2[:num_steps//2])
     xmax, ymax = calc_fft_limits(xf2, yf2)
+    xmax = max(xmax, frequency)
     ax2.set_xlim((0, xmax))
     ax2.set_ylim((0, ymax))
     #ax2.tick_params(axis='x', which='major')
@@ -76,6 +84,7 @@ def plot_result(time, values1, values2, values3, values4, frequency_peaks=True, 
 
     ax3.plot(xf3, yf3[:num_steps//2])
     xmax, ymax = calc_fft_limits(xf3, yf3)
+    xmax = max(xmax, frequency)
     ax3.set_xlim((0, xmax))
     ax3.set_ylim((0, ymax))
     ax3.set_xlabel("Frequency [Hz]")

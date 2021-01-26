@@ -1,7 +1,7 @@
 @REM @echo off
 
 @REM echo Building and running project using Visual Studio in release mode
-@REM cd build && cmake ..\ && MSBuild.exe src\fretting_dynamics.vcxproj /p:Configuration=Release && src\Release\fretting_dynamics.exe
+@REM cd build && cmake ..\ && MSBuild.exe src\friction_dynamics.vcxproj /p:Configuration=Release && src\Release\friction_dynamics.exe
 
 @echo off
 
@@ -23,11 +23,11 @@ if "%1" == "msvc" (
     ) else (
         if "%2" == "release" (
             echo Building and running project using Visual Studio in release mode
-            cd build && cmake .. && MSBuild.exe src\fretting_dynamics.vcxproj /p:Configuration=Release && cd src\Release && fretting_dynamics.exe
+            cd build && cmake .. && MSBuild.exe src\friction_dynamics.vcxproj /p:Configuration=Release && cd src\Release && friction_dynamics.exe
             exit
         ) else (
             echo Building and running project using Visual Studio
-            cd build && cmake .. && MSBuild.exe src\fretting_dynamics.vcxproj && cd src\Debug && fretting_dynamics.exe
+            cd build && cmake .. && MSBuild.exe src\friction_dynamics.vcxproj && cd src\Debug && friction_dynamics.exe
             exit
         )
     )

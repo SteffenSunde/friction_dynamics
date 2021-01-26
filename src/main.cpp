@@ -58,10 +58,12 @@ int main(int argc, const char* argv[])
                 }
             }
         } else if (vm.count("HertzRateSine")) {
-            std::cout << "Running HertzRateSine model with standard parameters\n";
+            std::cout << "HertzRateSine\n";
+            //std::cout << "Running HertzRateSine model with standard parameters\n";
             //hertz_rate_sine();
-            //hertz_rate_sine_shear();
-            calculate_multi_poincare_sections();
+            hertz_rate_sine_shear();
+            //hertz_rate_sine_slip();
+            //calculate_multi_poincare_sections();
         } else if (vm.count("input")) {
             std::string const& file = vm["input"].as<std::string>();
             std::cout << "Running on input-file " << file << "\n";

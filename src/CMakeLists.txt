@@ -14,8 +14,8 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 #message($ENV{YAML_CPP_INCLUDE_DIR})
 
-add_executable(fretting_dynamics main.cpp ${SOURCES})
-target_include_directories(fretting_dynamics PUBLIC $ENV{EIGEN3_INCLUDE_DIR} $ENV{YAML_CPP_INCLUDE_DIR})
-target_link_libraries(fretting_dynamics PUBLIC OpenMP::OpenMP_CXX ${Boost_LIBRARIES})
-target_link_directories(fretting_dynamics PUBLIC ${Boost_INCLUDE_DIRS} $ENV{YAML_CPP_LIB_DIR})
-target_link_directories(fretting_dynamics PUBLIC "C:\\Lib\\Boost\\lib")
+add_executable(friction_dynamics main.cpp ${SOURCES})
+target_include_directories(friction_dynamics PUBLIC $ENV{EIGEN3_INCLUDE_DIR} $ENV{YAML_CPP_INCLUDE_DIR})
+target_link_libraries(friction_dynamics PUBLIC OpenMP::OpenMP_CXX ${Boost_LIBRARIES})
+target_link_directories(friction_dynamics PUBLIC ${Boost_INCLUDE_DIRS} $ENV{YAML_CPP_LIB_DIR})
+target_link_directories(friction_dynamics PUBLIC "C:\\Lib\\Boost\\lib")

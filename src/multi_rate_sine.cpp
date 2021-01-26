@@ -100,10 +100,12 @@ auto HertzRateSine::get_initial() const -> Vec
 {
     Vec state(3*N+1);
     for (int i = 0; i < N; ++i) {
-        state(i) = 0.0;
-        state(i+1) = 1.0; //velocity_at_time(0.0);
-        state(i+2) = 0.0;
+        state(3*i) = 0.0;
+        state(3*i+1) = velocity_at_time(0.0);
+        state(3*i+2) = 0.0;
     }
+    state(3*N) = 0.0;
+
     return state;
 }
 
@@ -129,18 +131,49 @@ auto HertzRateSine::calc_displacement_amplitude(Vec const& state) const -> doubl
 }
 
 
-auto HertzRateSine::shear_force(Vec const& state, int block) -> double
+auto HertzRateSine::shear_force(Vec const& state, int block) const -> double
 {
     double const& time = state(3*N);
-    double const pad_vel = velocity_at_time(time);
-    if(block == 0) {
-        double external_force = -k0*state(0) - c0*state(1) 
-            + k*(state(3) - state(0)) 
-            + c * (state(4) - state(1));
+    double const pad_velocity = velocity_at_time(time);
+    double const relative_velocity = pad_velocity - state(3*block+1);
+    if (std::abs(relative_velocity) < eps) {
+        return (cof_static + state(3*block+2))*pressure(block);
+    } else {
+        return (cof_kinetic + state(3*block+2))*relative_velocity*pressure(block)*friction(relative_velocity);
     }
-    return 0;
+    // double shear_force = 0.0;
+    // if(block == 0) {
+    //     double external_force = -k0*state(0) - c0*state(1) 
+    //         + k*(state(3) - state(0)) 
+    //         + c * (state(4) - state(1));
+    //     double const relative_velocity = pad_velocity - state(1);
+
+    //     if (std::abs(relative_velocity) < eps) { // Stick
+    //         // double const friction_limit = (cof_static + state(3))*pressure(0);
+    //         // if (external_force > friction_limit) {  // Breaking
+    //         //     shear_force = 
+    //         // } else {
+    //         //     shear_force = 0.0;
+    //         // }
+    //         shear_force = (cof_static + state(2))*pressure(0);
+    //     } else {  // Slipping
+    //         shear_force = (cof_kinetic + state(2))*relative_velocity*pressure(0)*friction(relative_velocity);
+    //     }
+    // } else if (block == N) {
+
+    // }
+    
+    //return shear_force;
 }
 
+auto HertzRateSine::resultant_shear_force(Vec const& state) const -> double
+{
+    double force = 0.0;
+    for (auto i=0; i < N; ++i) {
+        force += shear_force(state, i);
+    }
+    return force;
+}
 
 auto calculate_hertz_rate_sine(
     HertzRateSine const& system, 
@@ -191,7 +224,7 @@ void hertz_rate_sine()
 }
 
 
-void hertz_rate_sine_shear()
+void hertz_rate_sine_slip()
 {
     /*
     Calculates the resulting shear amplitude
@@ -203,28 +236,30 @@ void hertz_rate_sine_shear()
     double const frequency = 13.0;
     int const num_blocks = 100;
     int const num_free_blocks = 5;  // On each side 
-    double transient_time = 100.0;
-    double const simulation_time = 10;
+    double transient_time = 10.0;
+    double const simulation_time = 1;
     int const write_frequency = 10;
-    std::string const output_file = "shear_" + std::to_string(frequency) + "Hz_"+std::to_string(num_blocks) + "blocks.csv";
+    std::string const output_file = "slip_" + std::to_string(frequency) + "Hz_"+std::to_string(num_blocks) + "blocks.csv";
 
     HertzRateSine system(num_blocks);  // TODO make factory
     system.f = frequency;
+    auto state = system.get_initial();  // Why is this error? Something is uninitialized somewhere
 
     int const num_saves = (int)(simulation_time/time_step/write_frequency);
     Eigen::MatrixXd storage = Eigen::MatrixXd::Zero(num_saves, 5);  // TODO: Store only a selection of dofs
-    //auto x = system.get_initial();  // Why is this error? Something is uninitialized somewhere
-    Vec state(3*num_blocks+1);
+    //Vec state(3*num_blocks+1);
 
+    std::cout << "Calculating slip values for end, edge and center for frequency " << frequency << " Hz\n";
 
-    double const transient_steps = (int)(transient_time/time_step);
+    int const transient_steps = (int)(transient_time/time_step);
     for(int i=0; i < transient_steps; ++i) {
-        state += step_rk4(system, state, time_step); // TODO: Total time not accurate.
+        state += step_rk4(system, state, time_step);
     }
 
-    double const simulation_steps = (int)(simulation_time/time_step);
+    int const simulation_steps = (int)(simulation_time/time_step);
     int j = 0;
     for (int i = 0; i < simulation_steps; ++i) {
+        //std::cout << ".";
         state += step_rk4(system, state, time_step);
         if(i % write_frequency == 0) {
             double const& time = state(3*num_blocks);
@@ -242,6 +277,55 @@ void hertz_rate_sine_shear()
     writeToCSVfile(output_file, storage);
 }
 
+
+void hertz_rate_sine_shear()
+{
+    /*
+    Calculates the resulting shear amplitude
+    for a given 
+    TODO: Make into builder pattern...
+
+    */
+    double const time_step = 1e-5;
+    double const frequency = 13.0;
+    int const num_blocks = 100;
+    int const num_free_blocks = 5;  // On each side 
+    double transient_time = 10;
+    double const simulation_time = 1;
+    int const write_frequency = 10;
+    std::string const output_file = "shear_" + std::to_string(frequency) + "Hz_"+std::to_string(num_blocks) + "blocks.csv";
+
+    HertzRateSine system(num_blocks);  // TODO make factory
+    system.f = frequency;
+
+    std::cout << "Calculating resulting shear stress " << frequency << " Hz.";
+
+    int const num_saves = (int)(simulation_time/time_step/write_frequency);
+    Eigen::MatrixXd storage = Eigen::MatrixXd::Zero(num_saves, 2);  // TODO: Store only a selection of dofs
+    auto state = system.get_initial();  // Why is this error? Something is uninitialized somewhere
+    //Vec state(3*num_blocks+1);
+
+    int const transient_steps = (int)(transient_time/time_step);
+    for(int i=0; i < transient_steps; ++i) {
+        state += step_rk4(system, state, time_step); // TODO: Total time not accurate.
+    }
+
+    int const simulation_steps = (int)(simulation_time/time_step);
+    int j = 0;
+    for (int i = 0; i < simulation_steps; ++i) {
+        state += step_rk4(system, state, time_step);
+        if(i % write_frequency == 0) {
+            double const& time = state(3*num_blocks);
+            double const pad_pos = system.position_at_time(time);
+            storage(j, 0) = time;
+            storage(j, 1) = system.resultant_shear_force(state);
+            j += 1;
+        }
+    }
+
+    std::cout << "Storing total shear force for "<< std::to_string(num_saves) << " steps in file " << output_file << ".\n";
+    writeToCSVfile(output_file, storage);
+}
 
 void calculate_multi_poincare_sections()
 {   

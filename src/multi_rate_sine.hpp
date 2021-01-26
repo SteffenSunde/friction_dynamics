@@ -52,9 +52,11 @@ struct HertzRateSine {
     double position_at_time(double const& time) const;
     double calc_displacement_amplitude(Vec const& state) const;
     auto get_initial() const -> Vec; 
-    auto shear_force(Vec const& state, int block) -> double;
-    auto resultant_shear_force(Vec const& state) -> double;
+    auto shear_force(Vec const& state, int block) const -> double;
+    auto resultant_shear_force(Vec const& state) const -> double;
 };
+
+//auto HertzRateSine::resultant_shear_force(Vec const& state) const -> double
 
 auto calculate_hertz_rate_sine(
     HertzRateSine const& system, 
@@ -65,6 +67,7 @@ auto calculate_hertz_rate_sine(
 
 void hertz_rate_sine();
 void hertz_rate_sine_shear();
+void hertz_rate_sine_slip();
 
 void calculate_multi_poincare_sections();
 

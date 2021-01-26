@@ -8,7 +8,7 @@ from math import pi
 
 def main(dof=0):
     file = "data/shear_13.000000Hz_100blocks.csv"
-    frequency = 10
+    frequency = 11
     displacement = 0.01
     df = pd.read_csv(file)
     plot_result(df.iloc[:,0].values, df.iloc[:,1].values, df.iloc[:,2].values, df.iloc[:,3].values, df.iloc[:,4].values, frequency, displacement)
