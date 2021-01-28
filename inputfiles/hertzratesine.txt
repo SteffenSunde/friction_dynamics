@@ -1,0 +1,6 @@
+
+
+model: HertzRateSine
+frequency: [10,20,30]
+num_blocks: 100
+natural_frequencies

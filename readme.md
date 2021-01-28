@@ -11,27 +11,30 @@ Plan:
 
 ## TODO
 - [ ] Write test cases
-- [ ] 1DOF rate-dependent friction
+- [X] 1DOF rate-dependent friction
   - [X] Rate-dependent friction
-  - [ ] Poincaré maps
+  - [X] Poincaré maps
   - [X] Frequency analysis
-- [ ] N-block system
+- [X] N-block system
 - [ ] Refactor (see design philosophy further down)
 - [ ] Write benchmarks
 - [ ] YAML-parser
 - [ ] Simulation types
-  - [ ] Simple time integrator
+  - [X] Simple time integrator
   - [ ] Frequency sweep
   - [ ] Snapshots throughout a long sim
-- [ ] Models
-  - [ ] HertzRateSine
-  - [ ] 
+- [ ] HertzRateSine
+  - [X] Poincare sections
+  - [X] Slip history and FFT
+  - [ ] Roughness (in pressure)
+- [ ] Monte-Carlo simulation
 
 ## Design Philosophies
-- Constant (compile-time evaluation) of as much as possible
+- Const and constexpr/eval of as much as possible
 - As little dynamic dispatching as possible
 - Functionality before composability
 - Use builder-pattern?
+- For heap objects: single owner and unique_ptr
 
 
 ## Licence

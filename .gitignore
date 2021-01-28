@@ -453,3 +453,4 @@ MigrationBackup/
 data/*
 .vscode/*
 debug.log
+third-party/*

@@ -1,0 +1,18 @@
+
+
+model: HertzRateSine
+- frequency: [10,20,30]
+- num_blocks: 100
+- num_free_blocks: 5
+- peak_pressure: 1000
+- stiffness: 10000
+- damping: 1
+- 
+- folder: "data"
+integrator: RungeKutta4
+- start_time = 
+- time_step = 
+output: history
+- resultant_shear
+- slip
+natural_frequencies: true

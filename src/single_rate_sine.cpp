@@ -43,21 +43,28 @@ void single_rate_sine(
     int transient_periods, 
     int num_intersections) 
 {
-    std::cout << "Running Single DOF with rate-dependent friction and sine driver (default settings)\n";
     double const time_step = 1e-5;
     //int const transient_periods = 200;
     int const num_initial_positions = 100;
     //int const num_intersections = 100;
     //double const frequency = 19.5;
     double const perturbance = 1e-14;
-    std::string const output_file = "poincare_"+ std::to_string(frequency) +"_"+std::to_string(transient_periods)+"_"+std::to_string(num_intersections)+".txt";
+    std::string const meta = "_b005";
+    std::string const output_file = "poincare_"+ std::to_string(frequency) +"_"+std::to_string(transient_periods)+"_"+std::to_string(num_intersections)+meta+".txt";
 
     SingleRateSine system(frequency);
+    system.c = 0.005*system.k;
 
+    std::cout << "Running SingleRateSine model with frequency " << std::to_string(frequency) << " Hz driver.\n"
+              << "recording " << num_intersections << " intersections at whole periods. \n"
+              << std::to_string(transient_periods) << " transient periods are discarded."
+              << "Damping: " << system.c << ", initial_positions: " << num_initial_positions
+              << "Perturbance: " << perturbance << "\n";
+    
     auto intersections = calculate_poincare_sections(
         system, time_step, num_initial_positions, num_intersections, transient_periods, perturbance);
 
-    std::cout << "Storing results in file " << output_file << ".\n";
+    printf("Storing results in file %s \n", output_file.c_str());
     writeToCSVfile(output_file, intersections);
 }
 
@@ -102,8 +109,8 @@ auto calculate_poincare_sections(
         }  
 
         for (int i=start; i<stop; ++i) {
-            double const perturbance = dis(generator) * perturbance;
-            Vec3 state(perturbance, initial_velocity, 0.0);
+            double const perturb = dis(generator) * perturbance;
+            Vec3 state(perturb, initial_velocity, 0.0);
 
             for (int j=0; j < transient_periods; ++j) {
                 double cycle_time = 0.0;

@@ -1,16 +1,21 @@
 #include "single_rate_sine.hpp"
 #include "multi_rate_sine.hpp"
+#include "input.hpp"
 
 #include <boost/program_options.hpp>
-//#include "yaml-cpp/yaml.h"
 
+#include <stdio.h>
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 namespace po = boost::program_options;
+using Clock = std::chrono::system_clock; 
 
 int main(int argc, const char* argv[]) 
 {
+    auto start_time = Clock::now();
+
     try {
         po::options_description desc{"Allowed options"};
         desc.add_options()
@@ -43,10 +48,10 @@ int main(int argc, const char* argv[])
         } else if( vm.count("integrators")) {
             std::cout << "None\n";
         } else if (vm.count("SingleRateSine")) {
-            std::cout << "Running single block with Rate-dependent friction and sinde-driver.\n";
-            if (!vm["input"].empty()) {
+            std::cout << "Running single block with Rate-dependent friction and sine-driver.\n";
+            if (!vm["input"].empty()) { // Run on input file
                 single_rate_sine(vm["input"].as<std::string>());
-            // } else if (!vm["input"].empty()) {
+            //} else if (!vm["input"].empty()) { // Run with standard parameters
             //     single_rate_sine());
             } else {
                 // double frequency = vm["frequency"].as<double>();
@@ -61,16 +66,23 @@ int main(int argc, const char* argv[])
             std::cout << "HertzRateSine\n";
             //std::cout << "Running HertzRateSine model with standard parameters\n";
             //hertz_rate_sine();
-            hertz_rate_sine_shear();
-            //hertz_rate_sine_slip();
+            // for (int freq=10; freq < 21; ++freq) {
+            //     hertz_rate_sine_shear((double)freq);
+            // }
+            
+            hertz_rate_sine_slip();
             //calculate_multi_poincare_sections();
         } else if (vm.count("input")) {
             std::string const& file = vm["input"].as<std::string>();
             std::cout << "Running on input-file " << file << "\n";
+            run_on_input_file(file);
         }
     } catch (const po::error& ex) {
         std::cerr << ex.what() << "\n";
     }
+
+    double elapsed = std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - start_time).count();
+    printf("Elapsed: %.3f seconds", elapsed);
 
     return 0;
 } 

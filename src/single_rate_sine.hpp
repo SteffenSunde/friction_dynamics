@@ -10,22 +10,27 @@
 
 
 struct SingleRateSine {
+    /*
+    A single oscillator with rate-dependent (velocity-weakening)
+    friction law and harmonic (sine) belt.
+    */
+
     // Physical properties
-    double const p = 2000.0;
-    double const m = 1.0;
-    double const k = 1e5;
-    double const c = 0.1;
+    double p = 2000.0;            // Pressure
+    double m = 1.0;               // Mass
+    double k = 1e5;               // Stiffness
+    double c = 500;               // Damping
 
     // Driver settings
-    double const d = 0.01;
-    double const f = 20.0;
+    double d = 0.01;              // Displacement amplitude for belt
+    double f = 20.0;              // Frequency of belt
 
     // Friction settings
-    double const eps = 1e-4;
-    double const cof_static = 0.75;
-    double const cof_kinetic = 0.55;
+    double eps = 1e-4;            // Width of "stick window" on relative velocity
+    double cof_static = 0.7;      // Static coefficient of friction
+    double cof_kinetic = 0.55;    // Kinetic coefficient of friction
 
-    SingleRateSine(double frequency) : f(frequency) {}
+    SingleRateSine(double const& frequency) : f(frequency) {}
 
     double friction(double const& v_rel) const {
         return 1.0/(1.0+std::abs(v_rel));
