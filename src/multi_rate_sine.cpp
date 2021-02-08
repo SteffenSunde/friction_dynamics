@@ -40,9 +40,9 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
     double const belt_velocity = 2.0*M_PI*f*d*std::cos(2.0*M_PI*f*time);
     double const belt_acceleration = -std::pow(2.0*M_PI*f, 2.0)*d*std::sin(2.0*M_PI*f*time);
 
-    double external_force = -k0*x(0) - c0*x(1);
+    double external_force = -k0*x(0) - (alpha*m + beta*k0)*x(1);
     if (N > 1) {
-        external_force += k*(x(3)-x(0)) + c*(x(4) - x(1));
+        external_force += k*(x(3)-x(0)) + (alpha*k)*(x(4) - x(1));  // Todo: Check if (N > 1)* .. is faster
     }
     
     //auto friction = [&](double v_rel) { return mu_d + (mu_s-mu_d)*std::exp(-std::abs(v_rel)/0.5); };
@@ -68,9 +68,9 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
     // Loop over interiour blocks
     if (N > 1) { // TODO Check state coefficients! Step through for N=3
         for (int i=1; i < N-1; ++i) { 
-            external_force = k*(x(3*i+3) - x(3*i)) + c*(x(3*i+4) - x(3*i+1))
-                            -k*(x(3*i) - x(3*i-3)) - c*(x(3*i+1) - x(3*i-2))
-                            -k0*x(3*i) - c0*x(3*i+1);
+            external_force = k*(x(3*i+3) - x(3*i)) + beta*k*(x(3*i+4) - x(3*i+1))
+                            -k*(x(3*i) - x(3*i-3)) - beta*k*(x(3*i+1) - x(3*i-2))
+                            -k0*x(3*i) - (alpha*m + beta*k0)*x(3*i+1);
             relative_velocity = x(3*i+1) - belt_velocity;
             
             if (std::abs(relative_velocity) < eps) {
@@ -92,8 +92,9 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
             dxdt(3*i+2) = evolve_cof*std::abs(x(3*i) - belt_position);
         }
 
-        // Right-end block
-        external_force = -k*(x(3*N-3)-x(3*N-6))-c*(x(3*N-2)-x(3*N-5))-k*x(3*N-3)-c*x(3*N-2);
+        // Right-end block  // TODO: Check damping coefficients
+        external_force = - k*(x(3*N-3)-x(3*N-6)) - beta*k*(x(3*N-2)-x(3*N-5))
+                         - k0*x(3*N-3) - (alpha*m + beta*k0)*x(3*N-2);
         relative_velocity = x(3*N-2)- belt_velocity;
         
         if (std::abs(relative_velocity) < eps) {
@@ -268,6 +269,71 @@ std::vector<double> HertzRateSine::calc_natural_frequencies() const
 }
 
 
+void HertzRateSine::damping_ratio(double const ratio_lowest, double const ratio_highest)
+{
+    /*
+    Calculates and applies Rayleigh damping term based on damping ratio
+    for lowest natural mode and highest natural mode.
+    NOTE: that other physical parameters must be set first (mass and stiffnes).
+
+    */
+
+   double const lowest_frequency = lowest_natural_frequency();
+   double const highest_frequency = highest_natural_frequenc();
+
+   std::cerr << "Not implemented yet!";
+
+}
+
+
+double HertzRateSine::lowest_natural_frequency() const
+{
+    /*
+    Returns the lowest natural frequency of the system in radians
+    Note: Must be called after other physical properties of the system
+    is set.
+
+    This mode corresponds to all block masses oscillating in-phase.
+
+    TODO: Check with calc_natural_frequencies() 
+    */
+    return std::sqrt(k0/m);
+}
+
+
+double HertzRateSine::highest_natural_frequenc() const 
+{
+    /*
+    Returns the highest natural frequency of the system in radians
+    Note: Must be called after other physical properties of the system
+    is set.
+
+    This mode corresponds to all block masses oscillating in opposite phase.
+
+    TODO: Check with calc_natural_frequencies() 
+    */
+    return std::sqrt((4*k + k0)/m);
+}
+
+
+void HertzRateSine::stiffness_proportional_damping(double const frequency, double const ratio)
+{
+    /*
+    Set stiffness-proportional damping to be a ratio of critical damping for the given
+    frequency [Hz]. For ratio < 1.0 frequency is underdamped, 1 == is critically damped
+    and > 1.0 overdamped. Note that other physical quantities must already be set (mass and
+    stiffness).
+
+    C = alpha * M + beta * K
+
+    TODO: Verify coeffients
+
+    */
+    this->alpha = 0.0;
+    this->beta = ratio / (2*M_PI*frequency);
+}
+
+
 /*
 Hard-coded utility functions follow. To be written into builder-pattern!
 */
@@ -338,23 +404,38 @@ void hertz_rate_sine_slip()
     Calculates and stores the slip history for left edge, contact edge and contact center
     */
     double const time_step = 1e-5;
-    double const frequency = 13.0;
+    double const frequency = 19.0;
     int const num_blocks = 100;
     int const num_free_blocks = 5;  // On each side
-    double const pressure = 2000; 
+    double const pressure = 200; 
     double transient_time = 100.0;
     double const simulation_time = 10;
     int const write_frequency = 10;
-    std::string const output_file = "slip_" + std::to_string(frequency) + "Hz_"+std::to_string(num_blocks) + "blocks_b001.csv";
+    double const stiffness_damping_ratio = 0.05;
+    std::string const output_file = "slip_" + std::to_string(frequency) + "Hz_" 
+                                  + std::to_string(num_blocks) + "blocks"
+                                  + "_beta" + std::to_string(stiffness_damping_ratio)
+                                  + ".csv";
 
     HertzRateSine system(num_blocks, pressure, num_free_blocks);  // TODO make into builder pattern
     system.f = frequency;
+    system.k0 = 1e4;
+    system.k = system.k0/num_blocks;
+    system.m = 1.0;
+    system.stiffness_proportional_damping(frequency, stiffness_damping_ratio);
+    
     auto state = system.get_initial();
-
+    
     int const num_saves = (int)(simulation_time/time_step/write_frequency)+1;
     Eigen::MatrixXd storage = Eigen::MatrixXd::Zero(num_saves, 5);
 
     std::cout << "Calculating slip values for end, edge and center for frequency " << frequency << " Hz\n";
+
+    double const lowest_frequency = system.lowest_natural_frequency();
+    double const highest_frequency = system.highest_natural_frequenc();
+
+    std::cout << "First natural mode: " << std::to_string(lowest_frequency)
+              << "\nLast natural mode:" << std::to_string(highest_frequency) << "\n";
 
     int const transient_steps = (int)(transient_time/time_step);
     for(int i=0; i < transient_steps; ++i) {
@@ -377,7 +458,7 @@ void hertz_rate_sine_slip()
         }
     }
 
-    std::cout << "Storing total shear for "<< std::to_string(num_saves) << " steps in file " << output_file << ".\n";
+    std::cout << "Storing slips shear for "<< std::to_string(num_saves) << " steps in file " << output_file << ".\n";
     writeToCSVfile(output_file, storage);
 }
 

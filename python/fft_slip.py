@@ -8,8 +8,8 @@ from scipy.signal import find_peaks
 from math import pi, log10
 
 def main(dof=0):
-    file = "data/slip_13.000000Hz_100blocks_b005.csv"
-    frequency = 13
+    file = "data/slip_19.000000Hz_100blocksbeta0.050000.csv"
+    frequency = 19
     displacement = 0.01
     df = pd.read_csv(file)
     plot_result(

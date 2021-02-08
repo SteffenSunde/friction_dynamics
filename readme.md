@@ -1,6 +1,8 @@
 # Fretting dynamics
 Simulating various friction systems
 
+Current goal: Find partial-slip curves. Introduce friction evolution and "noise" to pressure and see evolution of partial-slip.
+
 Plan:
 - FFT of total shear force
 - Implement friction law

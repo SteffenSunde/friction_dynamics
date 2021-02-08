@@ -10,11 +10,14 @@ struct HertzRateSine {
     /*
     A N-block system with rate-dependent (velocity-weakening) friction function.
     State-dependent friction is possible through linear scaling related to slip.
+
+    TODO: Make factory class so that objects can be const! Setting and getting 
+    parameters is currently a nightmare.
     */
 
     // Physical properties
     int const N = 100;              // Number of blocks
-    double const p = 2000.0;        // Peak pressure (at center block)
+    double const p = 200.0;        // Peak pressure (at center block)
     int const num_free_blocks = 5;  // Number of free blocks in each end
 
     double m = 1.0;                 // Block mass
@@ -22,6 +25,8 @@ struct HertzRateSine {
     double k = 1e3;                 // Stiffness between blocks
     double c0 = 50;                 // Damping
     double c = 10;                  // Damping between blocks
+    double alpha = 0.0;             // Rayleigh mass-proportional damping
+    double beta = 0.0;              // Rayleigh stiffness-proportional damping
     Eigen::VectorXd pressure;       // TODO: unique_ptr?
 
     // Belt settings
@@ -33,15 +38,20 @@ struct HertzRateSine {
     double cof_static = 0.75;       // Static CoF
     double cof_kinetic = 0.55;      // Kinetic CoF
     double evolve_cof = 0.0;        // Coefficient for linear CoF evolution (TODO)
+    double delta = 3.0;
 
     HertzRateSine(int _N, double _p, int _num_free_blocks);
 
-    double friction(double const& v_rel) const {
+    inline double friction(double const& v_rel) const {
         return 1.0/(1.0+std::abs(v_rel));
     }
 
+    inline double scale_friction(double const& vrel) const {
+        return 1.0/std::abs(1.0 + delta*vrel);
+    }
+
     auto slope(Vec const& state) const -> Vec;
-    double scale_friction(double const& vrel) const {return 1.0/std::abs(1.0 + vrel);}  // TODO
+
     double velocity_at_time(double const& time) const;
     double position_at_time(double const& time) const;
     double calc_displacement_amplitude(Vec const& state) const;
@@ -50,6 +60,10 @@ struct HertzRateSine {
     auto resultant_shear_force(Vec const& state) const -> double;
     void set_roughness(double const& height, double const wavelength);
     std::vector<double> calc_natural_frequencies() const;
+    void damping_ratio(double const ratio_lowest, double const ratio_highest);
+    double lowest_natural_frequency() const;
+    double highest_natural_frequenc() const;
+    void stiffness_proportional_damping(double const frequency, double const ratio);
 };
 
 auto calculate_hertz_rate_sine(
@@ -64,5 +78,7 @@ void hertz_rate_sine_shear(double const frequency);
 void hertz_rate_sine_slip();
 
 void calculate_multi_poincare_sections();
+
+
 
 #endif
