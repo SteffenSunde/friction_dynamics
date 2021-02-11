@@ -156,11 +156,16 @@ auto HertzRateSine::calc_displacement_amplitude(Vec const& state) const -> doubl
     return displacement;
 }
 
+double HertzRateSine::sum_shear(Vec const& state) const
+{
+    return 0;  // TODO Remove?
+}
 
 auto HertzRateSine::shear_force(Vec const& state, int block) const -> double
 {
     /*
     TODO: Check if correct. Must check dynamic equilbrium in stick condition??
+    Currently not correct.
     */
     double const& time = state(3*N);
     double const pad_velocity = velocity_at_time(time);
@@ -170,6 +175,7 @@ auto HertzRateSine::shear_force(Vec const& state, int block) const -> double
     } else {
         return (cof_kinetic + state(3*block+2))*relative_velocity*pressure(block)*friction(relative_velocity)*sgn(pad_velocity);
     }
+    //return k0*state(3*block);  // 
     // double shear_force = 0.0;
     // if(block == 0) {
     //     double external_force = -k0*state(0) - c0*state(1) 
@@ -316,7 +322,7 @@ double HertzRateSine::highest_natural_frequenc() const
 }
 
 
-void HertzRateSine::stiffness_proportional_damping(double const frequency, double const ratio)
+void HertzRateSine::stiffness_damping(double const frequency, double const ratio)
 {
     /*
     Set stiffness-proportional damping to be a ratio of critical damping for the given
@@ -330,7 +336,7 @@ void HertzRateSine::stiffness_proportional_damping(double const frequency, doubl
 
     */
     this->alpha = 0.0;
-    this->beta = ratio / (2*M_PI*frequency);
+    this->beta = ratio / (M_PI*frequency);
 }
 
 
@@ -411,6 +417,11 @@ void hertz_rate_sine_slip()
     double transient_time = 100.0;
     double const simulation_time = 10;
     int const write_frequency = 10;
+    double const stiffness = 1e5;
+    double const mass = 1;  // Per block
+    double const cof_static = 0.7;
+    double const cof_kinetic = 0.55;
+    double const delta = 3.0;
     double const stiffness_damping_ratio = 0.05;
     std::string const output_file = "slip_" + std::to_string(frequency) + "Hz_" 
                                   + std::to_string(num_blocks) + "blocks"
@@ -419,23 +430,28 @@ void hertz_rate_sine_slip()
 
     HertzRateSine system(num_blocks, pressure, num_free_blocks);  // TODO make into builder pattern
     system.f = frequency;
-    system.k0 = 1e4;
+    system.k0 = stiffness;
     system.k = system.k0/num_blocks;
-    system.m = 1.0;
-    system.stiffness_proportional_damping(frequency, stiffness_damping_ratio);
+    system.m = mass;
+    system.cof_static = cof_static;
+    system.cof_kinetic = cof_kinetic;
+    system.delta = delta;
+    //system.friction_properties(0.7, 0.55, 3.0);
+    system.stiffness_damping(frequency, stiffness_damping_ratio);
     
     auto state = system.get_initial();
     
     int const num_saves = (int)(simulation_time/time_step/write_frequency)+1;
     Eigen::MatrixXd storage = Eigen::MatrixXd::Zero(num_saves, 5);
+    Eigen::MatrixXd fretting_map = Eigen::MatrixXd::Zero(num_saves, 2);
 
     std::cout << "Calculating slip values for end, edge and center for frequency " << frequency << " Hz\n";
 
     double const lowest_frequency = system.lowest_natural_frequency();
     double const highest_frequency = system.highest_natural_frequenc();
 
-    std::cout << "First natural mode: " << std::to_string(lowest_frequency)
-              << "\nLast natural mode:" << std::to_string(highest_frequency) << "\n";
+    std::cout << "Lowest natural frequency: " << std::to_string(lowest_frequency)
+              << "\nHighest natural frequency:" << std::to_string(highest_frequency) << "\n";
 
     int const transient_steps = (int)(transient_time/time_step);
     for(int i=0; i < transient_steps; ++i) {
@@ -454,12 +470,15 @@ void hertz_rate_sine_slip()
             storage(j, 2) = state(3*(system.num_free_blocks + 1)) - pad_pos;      // Trailing edge
             storage(j, 3) = state(3*num_blocks/2) - pad_pos;                      // Contact center   
             storage(j, 4) = system.calc_displacement_amplitude(state) - pad_pos;  // Sum displacement
+            fretting_map(j,0) = system.resultant_shear_force(state);
+            fretting_map(j,1) = pad_pos; //system.calc_displacement_amplitude(state);
             j += 1;
         }
     }
 
     std::cout << "Storing slips shear for "<< std::to_string(num_saves) << " steps in file " << output_file << ".\n";
     writeToCSVfile(output_file, storage);
+    writeToCSVfile("HertzRateSine_frettingMap.txt", fretting_map);
 }
 
 
