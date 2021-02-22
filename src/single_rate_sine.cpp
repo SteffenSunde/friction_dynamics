@@ -175,7 +175,6 @@ auto calculate_poincare_sections(
 ) -> Eigen::Matrix<long double, Eigen::Dynamic, Eigen::Dynamic>
 {
     /*
-
     TODO: Investigate time drift. Increases with increasing frequency.
     */
 
@@ -190,46 +189,38 @@ auto calculate_poincare_sections(
     Vec3 state(0.0, initial_velocity, 0.0);
 
     long double acc_drift = 0.0;
-    long double time = 0.0;
     for (int i=0; i < transient_periods; ++i) {
         long double cycle_time = 0.0;
-        for (int k=0; k < period_steps; ++k) {
+        // for (int k=0; k < period_steps; ++k) {
+        while (cycle_time < period_time) {
             long double const dt = std::min(time_step, period_time-cycle_time);
             cycle_time += dt;
-            // time += dt;
-            //auto dstate =   // WTF why is time in system drifting but not diff in cycle_time??
             //if (std::abs(dstate[2]-dt) > 1e-9) throw std::string("ERROR: Drift");
-            state += step_rk4(system, state, dt);  // Maybe it is fmod which is wrong. See below.
-            // state[2] = cycle_time;
-            // time += dt;
-            // state[2] = time;
+            state += step_rk4(system, state, dt);
         }
         acc_drift += period_time - cycle_time;
     }
     
     printf("Transient drift: %e\n", state[2]/period_time-(long double)transient_periods);
 
-    if (false) {
+    if (half_period) {
         for (int i=0; i < (int)(transient_periods/2); ++i) {
             long double cycle_time = 0.0;
             for (int k=0; k < (int)(period_steps/2); ++k) {
                 long double const dt = std::min(time_step, period_time-cycle_time);
                 cycle_time += dt;
                 state += step_rk4(system, state, dt);
-                // state[2] = cycle_time;
             }
         }
     }
 
     for (int i=0; i < num_intersections; ++i) {
         long double cycle_time = 0.0;
-        long double dt = time_step;
-        for (int k=0; k < period_steps; ++k) {
-            dt = std::min(time_step, period_time - cycle_time);
+        //for (int k=0; k < period_steps; ++k) {
+        while(cycle_time < period_time) {
+            long double const dt = std::min(time_step, period_time - cycle_time);
             state += step_rk4(system, state, dt);
             cycle_time += dt;
-            // time += dt;
-            // state[2] = time;
         }
         acc_drift += period_time - period_time;
         intersections.row(i) = state;
@@ -258,9 +249,7 @@ void single_poincare_chaos_finder(long double const frequency_start, long double
     */
     long double const time_step = 1e-6;
     int const transient_periods = 1000;
-    int const num_intersections = (int)1e5;
-    int const num_initial_positions = 1;  // This is used for "perturbed maps"
-    long double const perturbance = 0.0;
+    int const num_intersections = (int)1e4;
     long double const damping_ratio = 0.05;
 
     std::mt19937_64 generator(101);  // TODO Which seed?
@@ -272,14 +261,21 @@ void single_poincare_chaos_finder(long double const frequency_start, long double
         long double frequency = distribution(generator);
         std::string const output_file = "poincare_"+ std::to_string(frequency)+".txt";
 
-        SingleRateSine system(frequency);
-        system.stiffness_damping(frequency, damping_ratio);
+            SingleRateSine system(frequency);
+            system.d = 0.01;
+            system.k = 1e4;
+            system.m = 1;
+            system.p = 100;
+            system.cof_static = 1.0;
+            system.cof_kinetic = 0.5;
+            system.delta = 2.0;
+            system.stiffness_damping(frequency, damping_ratio);
         
         auto intersections = calculate_poincare_sections(
             system, time_step, num_intersections, transient_periods);
 
-        long double ratio_displacement = (intersections.col(0).maxCoeff()-intersections.col(0).minCoeff())/(intersections.col(0).minCoeff()+1e-10);
-        long double ratio_velocity = (intersections.col(1).maxCoeff()-intersections.col(1).minCoeff())/(intersections.col(1).minCoeff()+1e-10);
+        long double ratio_displacement = (intersections.col(0).maxCoeff()-intersections.col(0).minCoeff())/system.d;
+        long double ratio_velocity = (intersections.col(1).maxCoeff()-intersections.col(1).minCoeff())/system.d;
 
         if (std::abs(ratio_displacement) > 0.1 && std::abs(ratio_velocity) > 0.1) {
             printf("Chaos may have been found for frequency %f! Storing results in file %s \n", frequency, output_file.c_str());
@@ -290,8 +286,8 @@ void single_poincare_chaos_finder(long double const frequency_start, long double
     }    
 }
 
-void 
-single_rate_sine_history(long double const frequency) 
+ 
+auto single_rate_sine_history(long double const frequency) -> void
 {
     // Physical parameters
     //double const frequency = 19.0;
@@ -300,7 +296,7 @@ single_rate_sine_history(long double const frequency)
     // Integration parameters
     long double const time_step = 1e-6;
     int const transient_periods = 1000;
-    long double const simulation_time = 20.0/frequency;
+    long double const simulation_time = 5.0/frequency;
     int const write_frequency = 1;
 
     // Setup equation system
@@ -311,7 +307,7 @@ single_rate_sine_history(long double const frequency)
     system.p = 100;
     system.cof_static = 1.0;
     system.cof_kinetic = 0.5;
-    system.delta = 3.0;
+    system.delta = 2.0;
     system.stiffness_damping(frequency, 0.05);
     
 
@@ -351,21 +347,18 @@ single_rate_sine_history(long double const frequency)
 }
 
 
-void 
-single_rate_sine_poincare(long double const frequency) 
+auto single_rate_sine_poincare(long double const frequency) -> void
 {
-
-
     // Physical parameters
     //long double const frequency = 30.0;
     long double const displacement = 0.01;
 
     // Integration parameters
-    long double const time_step = 1e-5;
+    long double const time_step = 1e-6;
     int const transient_periods = 1000;
     long double const simulation_time = 1.0;
     int const write_frequency = 1;
-    int num_intersections = (int)1e6;
+    int num_intersections = (int)1e4;
 
     // Setup equation system
     SingleRateSine system(frequency);
@@ -380,12 +373,10 @@ single_rate_sine_poincare(long double const frequency)
     
     // Storage info
     std::string const output_file = "poincare_single.csv";
-    std::string const header = "f: " + std::to_string(frequency);
+    std::string const header = "f: " + std::to_string(frequency) + ", p: " + std::to_string(system.p);
 
     long double const period_time = 1.0/frequency;
     int const period_steps = (int)(period_time/time_step) + 1;
-    int const num_time_steps = (int)(simulation_time/time_step);
-    int const num_saves = (int)((long double)num_time_steps/(long double)write_frequency);
     
     printf("Calculating %d intersections of first return map for single dof (k=%.2f, p=%.2f etc.)\n", num_intersections, system.k, system.p);
 

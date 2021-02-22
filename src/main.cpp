@@ -67,7 +67,7 @@ int main(int argc, const char* argv[])
                 // double frequency = vm["frequency"].as<double>();
                 // int transient_periods = vm["transients"].as<int>();
                 // int num_intersections = vm["intersections"].as<int>();
-                single_poincare_chaos_finder(20.0, 110.0);
+                single_poincare_chaos_finder(20.0, 30.0);
             }
         } else if (vm.count("SingleRateHistory")) {
             // po::options_description sub_opts("SingleRateHistory options");

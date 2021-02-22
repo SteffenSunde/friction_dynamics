@@ -28,7 +28,7 @@ def main():
     save_figure = True
     figure_path = "data/history_single_f10_chaos.pdf"
     amplitude_displacement = 0.01
-    frequency = 15
+    frequency = 11
 
     df = pd.read_csv(file, skiprows=1)
     df.columns = ["x", "v", "t"]

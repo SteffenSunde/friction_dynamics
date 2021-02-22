@@ -11,11 +11,12 @@ def main():
     #parse_header(file)
     df = pd.read_csv(file, skiprows=1)
     df.columns = ["x", "v", "t"]  # TODO: Colorize according to initial condition
-    print(np.diff(df.t).max())
+    print("Max step: ", np.diff(df.t).max())
+    print("Min step: ", np.diff(df.t).min())
     fig, ax = plt.subplots()
-    # ax.scatter(df.x, df.v, c=range(df.shape[0]), s=0.01)
-    # ax.set_xlabel(r"$x$", fontsize=14)
-    # ax.set_ylabel(r"$\dot{x}$", fontsize=14)
+    ax.scatter(df.x, df.v, color="black", s=0.1)  #c=range(df.shape[0])
+    ax.set_xlabel(r"$x$", fontsize=14)
+    ax.set_ylabel(r"$\dot{x}$", fontsize=14)
     # for i in range(num_colors):
     #     size = df.shape[0]//num_colors
     #     start = i * size

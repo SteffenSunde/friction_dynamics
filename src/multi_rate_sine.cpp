@@ -33,6 +33,9 @@ HertzRateSine::HertzRateSine(int _N, double _p, int _num_free_blocks)
 
 auto HertzRateSine::slope(Vec const& x) const -> Vec 
 {
+    /*
+    TODO: Remove redundant code and clean up
+    */
     Vec dxdt(3*N+1);
 
     double const& time = x(3*N);
@@ -55,7 +58,7 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
             dxdt(1) = belt_acceleration;
         } else {
             dxdt(0) = x(1);
-            dxdt(1) = 1.0/m*(external_force - friction_limit*sgn(external_force));  // Should acceleration be checked here?
+            dxdt(1) = 1.0/m*(external_force - friction_limit*sgn(external_force));
         }
     } else {
         dxdt(0) = x(1);
@@ -161,44 +164,49 @@ double HertzRateSine::sum_shear(Vec const& state) const
     return 0;  // TODO Remove?
 }
 
-auto HertzRateSine::shear_force(Vec const& state, int block) const -> double
+auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
 {
     /*
     TODO: Check if correct. Must check dynamic equilbrium in stick condition??
     Currently not correct.
     */
-    double const& time = state(3*N);
-    double const pad_velocity = velocity_at_time(time);
-    double const relative_velocity = pad_velocity - state(3*block+1);
-    if (std::abs(relative_velocity) < eps) {
-        return (cof_static + state(3*block+2))*pressure(block)*sgn(pad_velocity);
+    double const& time = x(3*N);
+    double const belt_velocity = velocity_at_time(time);
+    double const belt_acceleration = -std::pow(2.0*M_PI*f, 2.0)*d*std::sin(2.0*M_PI*f*time);
+    double const relative_velocity = belt_velocity - x(3*block+1);
+
+    double external_force = 0;
+    if (block == 0) {
+        external_force = -k0*x(0) - (alpha*m + beta*k0)*x(1);
+        if (N > 1) {
+            external_force += k*(x(3)-x(0)) + (beta*k)*(x(4) - x(1));
+        }
+    } else if (block == N-1) {
+        external_force = - k*(x(3*N-3)-x(3*N-6)) - beta*k*(x(3*N-2)-x(3*N-5))
+                         - k0*x(3*N-3) - (alpha*m + beta*k0)*x(3*N-2);
     } else {
-        return (cof_kinetic + state(3*block+2))*relative_velocity*pressure(block)*friction(relative_velocity)*sgn(pad_velocity);
+        external_force = k*(x(3*block+3) - x(3*block)) + beta*k*(x(3*block+4) - x(3*block+1))
+                    -k*(x(3*block) - x(3*block-3)) - beta*k*(x(3*block+1) - x(3*block-2))
+                    -k0*x(3*block) - (alpha*m + beta*k0)*x(3*block+1);        
     }
-    //return k0*state(3*block);  // 
-    // double shear_force = 0.0;
-    // if(block == 0) {
-    //     double external_force = -k0*state(0) - c0*state(1) 
-    //         + k*(state(3) - state(0)) 
-    //         + c * (state(4) - state(1));
-    //     double const relative_velocity = pad_velocity - state(1);
 
-    //     if (std::abs(relative_velocity) < eps) { // Stick
-    //         // double const friction_limit = (cof_static + state(3))*pressure(0);
-    //         // if (external_force > friction_limit) {  // Breaking
-    //         //     shear_force = 
-    //         // } else {
-    //         //     shear_force = 0.0;
-    //         // }
-    //         shear_force = (cof_static + state(2))*pressure(0);
-    //     } else {  // Slipping
-    //         shear_force = (cof_kinetic + state(2))*relative_velocity*pressure(0)*friction(relative_velocity);
-    //     }
-    // } else if (block == N) {
-
-    // }
-    
-    //return shear_force;
+    if (std::abs(relative_velocity) < eps) {
+        double const friction_limit = (cof_static + x(3*block+2))*pressure(block);
+        double const stick_force = std::abs(external_force + m*belt_acceleration);
+        if(stick_force <= friction_limit) {
+            return stick_force;
+        } else {
+            return external_force - friction_limit*sgn(external_force);
+            // dxdt(3*block) = x(3*block+1);
+            // dxdt(3*block+1) = 1.0/m*(external_force - friction_limit*sgn(external_force));  // *sgn(v_rel)TODO Check. Should belt acc be accounted for?
+        }
+    } else {
+        // dxdt(3*block) = x(3*block+1);
+        double const kinetic_friction = (cof_kinetic + x(3*block+2))*scale_friction(relative_velocity)*pressure(block)*sgn(relative_velocity);
+        // dxdt(3*block+1) = 1.0/m*(external_force - kinetic_friction);
+        return kinetic_friction;
+    }
+    printf("Logic error stupid. Todo remove");
 }
 
 
