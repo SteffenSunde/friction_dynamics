@@ -11,7 +11,7 @@
 #include <Eigen/Dense>
 
 
-using Vec3 = Eigen::Matrix<double, 3, 1>;
+using Vec3 = Eigen::Matrix<long double, 3, 1>;
 using Vec = Eigen::VectorXd;
 
 #endif

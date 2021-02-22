@@ -23,7 +23,7 @@ if "%1" == "msvc" (
     ) else (
         if "%2" == "release" (
             echo Building and running project using Visual Studio in release mode
-            cd build && cmake .. && MSBuild.exe src\friction_dynamics.vcxproj /p:Configuration=Release && cd src\Release && friction_dynamics.exe
+            cd build && cmake .. -DCMAKE_GENERATOR_PLATFORM=x64 && MSBuild.exe src\friction_dynamics.vcxproj /p:Configuration=Release && cd src\Release && friction_dynamics.exe
             exit
         ) else (
             echo Building and running project using Visual Studio

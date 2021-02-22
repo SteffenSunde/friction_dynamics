@@ -42,16 +42,16 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
 
     double external_force = -k0*x(0) - (alpha*m + beta*k0)*x(1);
     if (N > 1) {
-        external_force += k*(x(3)-x(0)) + (alpha*k)*(x(4) - x(1));  // Todo: Check if (N > 1)* .. is faster
+        external_force += k*(x(3)-x(0)) + (beta*k)*(x(4) - x(1));  // Todo: Check if (N > 1)* .. is faster
     }
     
     //auto friction = [&](double v_rel) { return mu_d + (mu_s-mu_d)*std::exp(-std::abs(v_rel)/0.5); };
     double relative_velocity = x(1) - belt_velocity;
-    if (std::abs(relative_velocity) < eps) {  // TODO More should be required for block to stick?? no
-        double friction_limit = (cof_static + x(2))*pressure(0);  // TODO: log function?
-        double stick_force = std::abs(external_force + m*belt_acceleration);
+    if (std::abs(relative_velocity) < eps) {
+        double const friction_limit = (cof_static + x(2))*pressure(0);
+        double const stick_force = std::abs(external_force + m*belt_acceleration);
         if (stick_force <= friction_limit) {
-            dxdt(0)= belt_velocity;
+            dxdt(0) = belt_velocity;
             dxdt(1) = belt_acceleration;
         } else {
             dxdt(0) = x(1);
@@ -365,7 +365,7 @@ auto calculate_hertz_rate_sine(
         x += step_rk4(system, x, time_step); // TODO: Total time not accurate.
     }
 
-    double const simulation_steps = (int)(simulation_time/time_step);
+    int const simulation_steps = (int)(simulation_time/time_step);
     int j = 0;
     for (int i = 0; i < simulation_steps; ++i) {
         x += step_rk4(system, x, time_step);

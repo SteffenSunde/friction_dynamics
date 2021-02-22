@@ -1,14 +1,22 @@
 import matplotlib.pyplot as plt
+from math import pi
+import numpy as np
 import pandas as pd
 
 def main():
-    file = "data/poincare_263.396127.txt"
+    file = "data/history_single.csv"
+    amplitude_displacement = 0.01
+    frequency = 15
+
     df = pd.read_csv(file)
-    df.columns = ["x", "v"]  # TODO: Colorize according to initial condition
+    df.columns = ["x", "v", "t"]  # TODO: Colorize according to initial condition
+
+    df["x_belt"] = amplitude_displacement * np.sin(2*pi*frequency*df.t)
+    df["v_belt"] = 2*pi*frequency * amplitude_displacement*np.cos(2*pi*frequency*df.t)
+
     fig, ax = plt.subplots()
-    # for i in range(100):
-    #     ax.scatter(df.x[101*i:100*i+100], df.v[100*i:100*i+100], s=0.25)
-    ax.scatter(df.x, df.v, s=0.25)
+    ax.plot(df.x, df.v, label="Block")
+    ax.plot(df.x_belt, df.v_belt, label="Belt")
     plt.show()
 
 

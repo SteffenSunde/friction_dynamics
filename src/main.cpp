@@ -17,18 +17,28 @@ int main(int argc, const char* argv[])
     auto start_time = Clock::now();
 
     try {
-        po::options_description desc{"Allowed options"};
-        desc.add_options()
+        po::options_description global{"Allowed options"};
+        global.add_options()
             ("help,h", "Display help message")
             ("input,i", po::value<std::string>(), "Run simulator on given YAML input file")
             ("integrators", "List available integrators")
             ("todo", "Display most important TODOS.")
             ("SingleRateSine", "Single block with rate-dependent friction and Sine driver.")
             ("HertzRateSine", "N (100) blocks with rate-and state dependent friction and sine driver.")
+            ("SingleRateHistory", po::value<double>()->implicit_value(20.0), "Calculate steady state for single DOF velocity-weakening friction at given frequency")
+            ("SingleRatePoincare", po::value<double>()->implicit_value(20.0), "Calculate Poincare maps for single DOF velocity-weakening friction at given frequency")
+            //("SingleRatePoincare", po::value<std::vector<std::string> >()->default_value({}), "Poincare map for single oscillator")
         ;
 
+        // po::positional_options_description pos;
+        // pos.add("SingleRatePoincare", 1)
+        //     .add("subargs", -1);
+
         po::variables_map vm;
-        po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
+        po::parsed_options parsed = po::command_line_parser(argc, argv)
+            .options(global)
+            .allow_unregistered()
+            .run();
         po::store(parsed, vm);
         po::notify(vm);   
         std::vector<std::string> unrecognized = po::collect_unrecognized(parsed.options, po::include_positional);
@@ -40,7 +50,7 @@ int main(int argc, const char* argv[])
         if (vm.empty()) {
             std::cout << "Spring-block simulator. See --help for more info.\n";
         } else if (vm.count("help")) {
-            std::cout << desc << "\n";
+            std::cout << global << "\n";
         } else if (unrecognized.size() > 0) {
             std::cout << "Error: Did not understand the following parameters\n";
             for (auto c: unrecognized) std::cout << c << " ";
@@ -59,6 +69,26 @@ int main(int argc, const char* argv[])
                 // int num_intersections = vm["intersections"].as<int>();
                 single_poincare_chaos_finder(20.0, 110.0);
             }
+        } else if (vm.count("SingleRateHistory")) {
+            // po::options_description sub_opts("SingleRateHistory options");
+            // sub_opts.add_options()("f", po::value<double>()->implicit_value(15.0));
+
+            // po::store(po::command_line_parser(opts).options(sub_opts)).run(), vm);
+            double frequency = vm["SingleRateHistory"].as<double>();
+            printf("Calculating steady-state for a single velocity weakening oscillator (Frequency: %.2f)\n", frequency);
+            single_rate_sine_history(frequency);
+        } else if(vm.count("SingleRatePoincare")) {
+            // po::options_description singleratepoincare_desc("SingleRatePoincare options");
+            // singleratepoincare_desc.add_options()
+            //     ("frequency", po::value<double>()->default_value(15.0), "Frequency of system");
+            // std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+            // opts.erase(opts.begin());  // New options include positional command which is not needed.
+            // po::store(po::command_line_parser(opts).options(singleratepoincare_desc).run(), vm);  // Reparse
+            // //std::cout << vm["frequency"].as<std::string>();
+            // double frequency = vm["frequency"].as<double>();
+            //printf("Calculating Poincaré map for single block with f: %.2f\n", frequency);
+            double frequency = vm["SingleRatePoincare"].as<double>();
+            single_rate_sine_poincare(frequency);
         } else if (vm.count("HertzRateSine")) {
             std::cout << "HertzRateSine\n";
             //std::cout << "Running HertzRateSine model with standard parameters\n";
@@ -78,7 +108,7 @@ int main(int argc, const char* argv[])
         std::cerr << ex.what() << "\n";
     }
 
-    double elapsed = std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - start_time).count();
+    double elapsed = (double)std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - start_time).count();
     printf("Elapsed: %.3f seconds", elapsed);
 
     return 0;
