@@ -164,6 +164,7 @@ double HertzRateSine::sum_shear(Vec const& state) const
     return 0;  // TODO Remove?
 }
 
+
 auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
 {
     /*
@@ -196,7 +197,8 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
         if(stick_force <= friction_limit) {
             return stick_force;
         } else {
-            return external_force - friction_limit*sgn(external_force);
+            return friction_limit*sgn(external_force);
+            //return external_force - friction_limit*sgn(external_force);
             // dxdt(3*block) = x(3*block+1);
             // dxdt(3*block+1) = 1.0/m*(external_force - friction_limit*sgn(external_force));  // *sgn(v_rel)TODO Check. Should belt acc be accounted for?
         }
@@ -412,13 +414,13 @@ void hertz_rate_sine()
 }
 
 
-void hertz_rate_sine_slip()
+void hertz_rate_sine_slip(double const frequency)
 {
     /*
     Calculates and stores the slip history for left edge, contact edge and contact center
     */
     double const time_step = 1e-5;
-    double const frequency = 19.0;
+    //double const frequency = 19.0;
     int const num_blocks = 100;
     int const num_free_blocks = 5;  // On each side
     double const pressure = 200; 
@@ -431,10 +433,11 @@ void hertz_rate_sine_slip()
     double const cof_kinetic = 0.55;
     double const delta = 3.0;
     double const stiffness_damping_ratio = 0.05;
-    std::string const output_file = "slip_" + std::to_string(frequency) + "Hz_" 
-                                  + std::to_string(num_blocks) + "blocks"
-                                  + "_beta" + std::to_string(stiffness_damping_ratio)
+    //std::string const output_file = "slip_" + std::to_string(frequency) + "Hz_"  \
+                                  + std::to_string(num_blocks) + "blocks" \
+                                  + "_beta" + std::to_string(stiffness_damping_ratio) \
                                   + ".csv";
+    std::string const output_file ="multi_slip.csv";
 
     HertzRateSine system(num_blocks, pressure, num_free_blocks);  // TODO make into builder pattern
     system.f = frequency;
@@ -460,6 +463,8 @@ void hertz_rate_sine_slip()
 
     std::cout << "Lowest natural frequency: " << std::to_string(lowest_frequency)
               << "\nHighest natural frequency:" << std::to_string(highest_frequency) << "\n";
+    
+    //std::string const header = "f: " + std::to_string(system.f) + ",p:" + std::to_string(pressure) +"\n";
 
     int const transient_steps = (int)(transient_time/time_step);
     for(int i=0; i < transient_steps; ++i) {
@@ -486,7 +491,7 @@ void hertz_rate_sine_slip()
 
     std::cout << "Storing slips shear for "<< std::to_string(num_saves) << " steps in file " << output_file << ".\n";
     writeToCSVfile(output_file, storage);
-    writeToCSVfile("HertzRateSine_frettingMap.txt", fretting_map);
+    writeToCSVfile("fretting_map.csv", fretting_map);
 }
 
 

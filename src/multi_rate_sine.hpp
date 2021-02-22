@@ -76,7 +76,7 @@ auto calculate_hertz_rate_sine(
 
 void hertz_rate_sine();
 void hertz_rate_sine_shear(double const frequency);
-void hertz_rate_sine_slip();
+void hertz_rate_sine_slip(double const frequency);
 
 void calculate_multi_poincare_sections();
 

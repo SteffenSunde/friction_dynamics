@@ -24,7 +24,7 @@ int main(int argc, const char* argv[])
             ("integrators", "List available integrators")
             ("todo", "Display most important TODOS.")
             ("SingleRateSine", "Single block with rate-dependent friction and Sine driver.")
-            ("HertzRateSine", "N (100) blocks with rate-and state dependent friction and sine driver.")
+            ("HertzRateSine", po::value<double>()->implicit_value(20.0), "N (100) blocks with rate-and state dependent friction and sine driver.")
             ("SingleRateHistory", po::value<double>()->implicit_value(20.0), "Calculate steady state for single DOF velocity-weakening friction at given frequency")
             ("SingleRatePoincare", po::value<double>()->implicit_value(20.0), "Calculate Poincare maps for single DOF velocity-weakening friction at given frequency")
             //("SingleRatePoincare", po::value<std::vector<std::string> >()->default_value({}), "Poincare map for single oscillator")
@@ -90,14 +90,8 @@ int main(int argc, const char* argv[])
             double frequency = vm["SingleRatePoincare"].as<double>();
             single_rate_sine_poincare(frequency);
         } else if (vm.count("HertzRateSine")) {
-            std::cout << "HertzRateSine\n";
-            //std::cout << "Running HertzRateSine model with standard parameters\n";
-            //hertz_rate_sine();
-            // for (int freq=10; freq < 21; ++freq) {
-            //     hertz_rate_sine_shear((double)freq);
-            // }
-            
-            hertz_rate_sine_slip();
+            double const frequency = vm["HertzRateSine"].as<double>();
+            hertz_rate_sine_slip(frequency);
             //calculate_multi_poincare_sections();
         } else if (vm.count("input")) {
             std::string const& file = vm["input"].as<std::string>();
