@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 def main():
-    file = "data/HertzRateSine_frettingMap.txt"
+    file = "data/fretting_map.csv"
     df = pd.read_csv(file)
     df.columns = ["Q", "d"]  # TODO: Colorize according to initial condition
     fig, ax = plt.subplots()
