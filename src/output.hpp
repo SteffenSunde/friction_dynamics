@@ -12,8 +12,7 @@ void writeToCSVfile(std::string name, Eigen::MatrixBase<T>& matrix, std::string 
 {
     std::ofstream file(name.c_str());
     if (header != "") {
-        printf("yes!");
-        file << header + "\n";
+        file << "#" << header << "\n";
     }
     file << matrix.format(CSVFormat);
     file.close();

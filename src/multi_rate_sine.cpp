@@ -176,20 +176,20 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
     double const relative_velocity = belt_velocity - x(3*block+1);
 
     double external_force = 0;
-    if (block == 0) {
+    if (block == 0) {  // Left end
         external_force = -k0*x(0) - (alpha*m + beta*k0)*x(1);
         if (N > 1) {
             external_force += k*(x(3)-x(0)) + (beta*k)*(x(4) - x(1));
         }
-    } else if (block == N-1) {
+    } else if (block == N-1) {  // Right end
         external_force = - k*(x(3*N-3)-x(3*N-6)) - beta*k*(x(3*N-2)-x(3*N-5))
                          - k0*x(3*N-3) - (alpha*m + beta*k0)*x(3*N-2);
-    } else {
+    } else {  // In-between
         external_force = k*(x(3*block+3) - x(3*block)) + beta*k*(x(3*block+4) - x(3*block+1))
                     -k*(x(3*block) - x(3*block-3)) - beta*k*(x(3*block+1) - x(3*block-2))
                     -k0*x(3*block) - (alpha*m + beta*k0)*x(3*block+1);        
     }
-
+    
     if (std::abs(relative_velocity) < eps) {
         double const friction_limit = (cof_static + x(3*block+2))*pressure(block);
         double const stick_force = std::abs(external_force + m*belt_acceleration);

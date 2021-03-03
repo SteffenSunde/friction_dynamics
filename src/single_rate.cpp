@@ -1,5 +1,5 @@
 #include "data_structures.hpp"
-#include "single_rate.hpp"
+#include "single.hpp"
 #include "integrators.hpp"
 #include "output.hpp"
 
@@ -194,7 +194,7 @@ auto calculate_poincare_sections(
 }
 
 
-void single_poincare_chaos_finder(double const frequency_start, double const frequency_stop)
+void single_chaos_finder(double const frequency_start, double const frequency_stop)
 {
     /*
     Calculates Poincaré maps for a large series of random frequencies within the given range.
@@ -208,7 +208,7 @@ void single_poincare_chaos_finder(double const frequency_start, double const fre
     */
     double const time_step = 1e-5;
     int const transient_periods = 1000;
-    int const num_intersections = (int)1e5;
+    int const num_intersections = (int)1e4;
     int const num_initial_positions = 1;  // This is used for "perturbed maps"
     double const perturbance = 0.0;
     double const damping_ratio = 0.05;
@@ -235,7 +235,7 @@ void single_poincare_chaos_finder(double const frequency_start, double const fre
             printf("Chaos may have been found for frequency %f! Storing results in file %s \n", frequency, output_file.c_str());
             writeToCSVfile(output_file, intersections);
         } else {
-            printf("Nothing interesting found for frequency %f. Moving on...\n", frequency);
+            printf("Nothing interesting found for frequency %f. Moving on...\n\n", frequency);
         }
     }    
 }

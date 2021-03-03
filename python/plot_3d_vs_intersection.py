@@ -4,31 +4,33 @@ import scipy.fftpack
 from math import pi
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 
-
-# def parse_header(file_path):
-#     arguments = {}
-#     with open(file_path) as f:
-#         line = f.readline()
-#         while (line.startswith('#')):
-#             wordlist = line.split(',')
-#             for word in wordlist:
-#                 key, value = word.split(':')
-#                 arguments[key] = value
-#             line = f.readline()
-
+def parse_header(file_path):
+    arguments = {}
+    with open(file_path) as f:
+        line = f.readline()
+        while (line.startswith('#')):
+            wordlist = line[1:].split(',')
+            for word in wordlist:
+                key, value = word.split(':')
+                arguments[key] = value
+            line = f.readline()
+    return arguments
 
 def main():
     #matplotlib.rcParams.update({'font.size': 14})
 
     file = "data/history_single.csv"
 
-    #print(parse_header(file))
+    meta = parse_header(file)
+    figure_title = "".join(["{}: {} ".format(key, value) for key, value in meta.items()])
 
-    save_figure = True
+    save_figure = False
     figure_path = "data/history_single_f10_chaos.pdf"
-    amplitude_displacement = 0.01
-    frequency = 11
+    amplitude_displacement = float(meta['disp'])
+    frequency = float(meta['f'])
 
     df = pd.read_csv(file, skiprows=1)
     df.columns = ["x", "v", "t"]
@@ -46,7 +48,7 @@ def main():
     xf1 =  np.linspace(0.0, 1.0//(2.0*dt), num_steps//2)
     ax1 = fig.add_subplot(131)
     ax1.plot(xf1, yf1[:num_steps//2])
-    ax1.set_xlim((0,50))
+    ax1.set_xlim((0,100))
     ax1.set_xlabel(r"Frequency [Hz]", fontsize=14)
     ax1.set_ylabel(r"$x$", fontsize=14)
     ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
@@ -69,7 +71,7 @@ def main():
     #ax3.subplots_adjust(left=-0.5, right=0.5, top=0, bottom=0)
     #ax1.set_yticks([-10, 10])
     
-    
+    fig.suptitle(figure_title)
     plt.tight_layout()
     if save_figure: fig.savefig(figure_path)
     plt.show()

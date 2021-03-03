@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <random>
 
 namespace po = boost::program_options;
 using Clock = std::chrono::system_clock; 
@@ -25,8 +26,8 @@ int main(int argc, const char* argv[])
             ("todo", "Display most important TODOS.")
             ("SingleRateSine", "Single block with rate-dependent friction and Sine driver.")
             ("HertzRateSine", "N (100) blocks with rate-and state dependent friction and sine driver.")
-            ("SingleRateHistory", po::value<double>()->implicit_value(20.0), "Calculate steady state for single DOF velocity-weakening friction at given frequency")
-            ("SingleRatePoincare", po::value<double>()->implicit_value(20.0), "Calculate Poincare maps for single DOF velocity-weakening friction at given frequency")
+            ("SingleRateHistory", po::value<double>()->implicit_value(15.0), "Calculate steady state for single DOF velocity-weakening friction at given frequency")
+            ("SingleRatePoincare", po::value<double>()->implicit_value(15.0), "Calculate Poincare maps for single DOF velocity-weakening friction at given frequency")
             //("SingleRatePoincare", po::value<std::vector<std::string> >()->default_value({}), "Poincare map for single oscillator")
         ;
 
@@ -67,7 +68,12 @@ int main(int argc, const char* argv[])
                 // double frequency = vm["frequency"].as<double>();
                 // int transient_periods = vm["transients"].as<int>();
                 // int num_intersections = vm["intersections"].as<int>();
-                single_poincare_chaos_finder(20.0, 30.0);
+                // std::mt19937_64 generator(100);  // TODO Which seed?
+                // std::uniform_real_distribution<long double> dis(0.0, 1.0);
+                // #pragma omp parallel for
+                // for(int x=0; x < (int)1e6; x++){
+                    single_poincare_chaos_finder(2, 30.0);
+                // }
             }
         } else if (vm.count("SingleRateHistory")) {
             // po::options_description sub_opts("SingleRateHistory options");
@@ -102,7 +108,7 @@ int main(int argc, const char* argv[])
         } else if (vm.count("input")) {
             std::string const& file = vm["input"].as<std::string>();
             std::cout << "Running on input-file " << file << "\n";
-            run_on_input_file(file);
+            //run_on_input_file(file);
         }
     } catch (const po::error& ex) {
         std::cerr << ex.what() << "\n";
