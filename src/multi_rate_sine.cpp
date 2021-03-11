@@ -174,7 +174,7 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
     double const& time = x(3*N);
     double const belt_velocity = velocity_at_time(time);
     double const belt_acceleration = -std::pow(2.0*M_PI*f, 2.0)*d*std::sin(2.0*M_PI*f*time);
-    double const relative_velocity = belt_velocity - x(3*block+1);
+    double const relative_velocity = x(3*block+1) - belt_velocity; 
 
     double external_force = 0;
     if (block == 0) {  // Left end
@@ -195,20 +195,14 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
         double const friction_limit = (cof_static + x(3*block+2))*pressure(block);
         double const stick_force = std::abs(external_force + m*belt_acceleration);
         if(stick_force <= friction_limit) {
-            return stick_force;
+            return -stick_force*sgn(external_force);
         } else {
-            return friction_limit*sgn(external_force);
-            //return external_force - friction_limit*sgn(external_force);
-            // dxdt(3*block) = x(3*block+1);
-            // dxdt(3*block+1) = 1.0/m*(external_force - friction_limit*sgn(external_force));  // *sgn(v_rel)TODO Check. Should belt acc be accounted for?
+            return -friction_limit*sgn(external_force);
         }
     } else {
-        // dxdt(3*block) = x(3*block+1);
         double const kinetic_friction = (cof_kinetic + x(3*block+2))*scale_friction(relative_velocity)*pressure(block)*sgn(relative_velocity);
-        // dxdt(3*block+1) = 1.0/m*(external_force - kinetic_friction);
         return kinetic_friction;
     }
-    printf("Logic error stupid. Todo remove");
 }
 
 
@@ -414,55 +408,73 @@ void hertz_rate_sine()
 }
 
 
-void hertz_rate_sine_slip(double const frequency)
+void hertz_rate_sine_slip(double const frequency, double const delta)
 {
     /*
     Calculates and stores the slip history for left edge, contact edge and contact center
     */
-    double const time_step = 1e-5;
+    double const time_step = 1e-7;
     //double const frequency = 19.0;
     int const num_blocks = 100;
     int const num_free_blocks = 5;  // On each side
-    double const pressure = 200; 
-    double transient_time = 100.0;
+    double const pressure = 1200; 
+    double transient_time = 1000/frequency;
     double const simulation_time = 10;
-    int const write_frequency = 10;
+    int const write_frequency = 100;
     double const stiffness = 1e5;
-    double const mass = 1;  // Per block
-    double const cof_static = 0.7;
-    double const cof_kinetic = 0.55;
-    double const delta = 3.0;
-    double const stiffness_damping_ratio = 0.05;
-    //std::string const output_file = "slip_" + std::to_string(frequency) + "Hz_"  \
-                                  + std::to_string(num_blocks) + "blocks" \
-                                  + "_beta" + std::to_string(stiffness_damping_ratio) \
-                                  + ".csv";
-    std::string const output_file ="multi_slip.csv";
+    double const mass = 0.05/100;  // Per block
+    double const cof_static = 0.75;
+    double const cof_kinetic = 0.50;
+    //double const delta = 1.0;
+    double const stiffness_damping_ratio = 0.1;
 
     HertzRateSine system(num_blocks, pressure, num_free_blocks);  // TODO make into builder pattern
     system.f = frequency;
-    system.k0 = stiffness;
-    system.k = system.k0/num_blocks;
+    system.k0 = stiffness/num_blocks;
+    system.k = system.k0;
     system.m = mass;
     system.cof_static = cof_static;
     system.cof_kinetic = cof_kinetic;
     system.delta = delta;
-    //system.friction_properties(0.7, 0.55, 3.0);
-    system.stiffness_damping(frequency, stiffness_damping_ratio);
+    
+    double const first_natural_frequency = system.lowest_natural_frequency() / (2*M_PI);
+    system.stiffness_damping(first_natural_frequency, stiffness_damping_ratio);
     
     auto state = system.get_initial();
-    
-    int const num_saves = (int)(simulation_time/time_step/write_frequency)+1;
+
+    std::string const output_history = "mdof/P1200/multi_slip_f" + std::to_string(frequency)
+                                  + "_del" + std::to_string(system.delta)
+                                  + "_xi" + std::to_string(stiffness_damping_ratio)+".csv";
+
+    std::string const output_loop = "mdof/P1200/fretting_loop_f" + std::to_string(frequency)
+                                    + "_del" + std::to_string(system.delta)
+                                    + "_xi" + std::to_string(stiffness_damping_ratio)+".csv";
+
+    std::string const file_header = "f:" + std::to_string(frequency)
+                    + ",xi:" + std::to_string(stiffness_damping_ratio)
+                    + ",k:" + std::to_string(system.k)
+                    + ",k0:" + std::to_string(system.k0)
+                    + ",disp:" + std::to_string(system.d)
+                    + ",m:" + std::to_string(system.m)
+                    + ",del:" + std::to_string(system.delta)
+                    + ",p:" + std::to_string(system.p)
+                    + ",cs:" + std::to_string(system.cof_static)
+                    + ",cd:" + std::to_string(system.cof_kinetic)
+                    + ",dt:" + std::to_string(time_step)
+                    + ",trans_time:" + std::to_string(transient_time);
+
+    int const num_saves = (int)(simulation_time/time_step/write_frequency);
     Eigen::MatrixXd storage = Eigen::MatrixXd::Zero(num_saves, 5);
     Eigen::MatrixXd fretting_map = Eigen::MatrixXd::Zero(num_saves, 2);
 
     std::cout << "Calculating slip values for end, edge and center for frequency " << frequency << " Hz\n";
+    std::cout << "Settings: " << file_header << "\n";
 
     double const lowest_frequency = system.lowest_natural_frequency();
     double const highest_frequency = system.highest_natural_frequenc();
 
-    std::cout << "Lowest natural frequency: " << std::to_string(lowest_frequency)
-              << "\nHighest natural frequency:" << std::to_string(highest_frequency) << "\n";
+    std::cout << "Lowest natural frequency: " << std::to_string(lowest_frequency/(2*M_PI)) << " Hz\n"
+              << "Highest natural frequency:" << std::to_string(highest_frequency/(2*M_PI)) << "Hz\n";
     
     //std::string const header = "f: " + std::to_string(system.f) + ",p:" + std::to_string(pressure) +"\n";
 
@@ -489,9 +501,9 @@ void hertz_rate_sine_slip(double const frequency)
         }
     }
 
-    std::cout << "Storing slips shear for "<< std::to_string(num_saves) << " steps in file " << output_file << ".\n";
-    writeToCSVfile(output_file, storage);
-    writeToCSVfile("fretting_map.csv", fretting_map);
+    std::cout << "Storing slip histories for "<< std::to_string(num_saves) << " steps in file " << output_history << ".\n";
+    writeToCSVfile(output_history, storage, file_header);
+    writeToCSVfile(output_loop, fretting_map, file_header);
 }
 
 
