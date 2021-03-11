@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 def main():
-    file = "data/history_single.csv"
+    file = "data/chaos/history_single.csv"
     amplitude_displacement = 0.01
     frequency = 15
 

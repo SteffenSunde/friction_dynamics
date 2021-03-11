@@ -19,6 +19,11 @@ auto SingleRateSine::initial_state() const -> Vec3
     return Vec3{0.0, velocity_at_time(0), 0.0};
 }
 
+auto SingleRateSine::natural_frequency() const -> double
+{
+    return sqrt(k/m)/2.0/M_PI;
+}
+
 auto SingleRateSine::slope(Vec3 const& state) const -> Vec3 {
     Vec3 dxdt;
     long double const belt_velocity = 2.0*M_PI*f*d*std::cos(2.0*M_PI*f*state[2]);
@@ -179,7 +184,7 @@ auto calculate_poincare_sections(
     TODO: Investigate time drift. Increases with increasing frequency.
     */
 
-    bool half_period = true;  // Flag to set if half-periods are to be intersected. TODO: Check 
+    bool half_period = false;  // Flag to set if half-periods are to be intersected. TODO: Check 
 
     long double const period_time = (long double)1.0/system.f;
     int period_steps = (int)(period_time/time_step)+1;
@@ -226,9 +231,11 @@ auto calculate_poincare_sections(
         // intersections(i, 0) = state[0];
         // intersections(i, 1) = state[1];
     }
+    double time_drift = state[2] - (long double)(num_intersections + transient_periods)*period_time;
+    if (half_period) { time_drift -= (long double)0.5*period_time; }
     printf("period_time - cycle_time: %e\n", acc_drift);
     printf("Calculated %d intersections with frequency %.2f and time step %e. Accumulated time drift: %e\n",
-        num_intersections, system.f, time_step, (state[2]-(half_period)*period_time/2)/period_time - (long double)(num_intersections+transient_periods));  //std::fmod(state[2], period_time)
+        num_intersections, system.f, time_step, time_drift);  //std::fmod(state[2], period_time)
 
     return intersections;
 }
@@ -247,47 +254,51 @@ void single_poincare_chaos_finder(long double const frequency_start, long double
 
     */
     long double const time_step = 1e-7;
-    int const transient_periods = 1000;
-    int const num_intersections = (int)1e4;
-    long double const damping_ratio = 0.01;
+    int const transient_periods = 5000;
+    int const num_intersections = (int)1e6;
+    long double const damping_ratio = 0.005;
 
-    std::mt19937_64 generator(101);  // TODO Which seed?
+    std::mt19937_64 generator(102);  // TODO Which seed?
+    //std::mt19937_64 generator2(101);
     std::uniform_real_distribution<long double> distribution(frequency_start, frequency_stop);
+    std::uniform_real_distribution<long double> pressure_distribution(1250.0, 1500.0);
 
     printf("Searching for interesting Poincaré maps between frequencies %.1f and %.1f Hz...\n", frequency_start, frequency_stop);
 
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 0; i < (int)1e6; ++i) {
         long double frequency = distribution(generator);  // TODO: mt19937_64 thread safe? Make thread id part of seed?
-        std::string const output_file = "poincare_"+ std::to_string(frequency)+".txt";
+        std::string const output_file = "chaos/del05/poincare_"+ std::to_string(frequency)+".txt";
 
             SingleRateSine system(frequency);
             system.d = 0.01;
-            system.k = 1e4;
-            system.m = 0.01;
-            system.p = 50;
-            system.cof_static = 1.0;
+            system.k = 1e5;
+            system.m = 0.05;
+            system.p = pressure_distribution(generator);
+            system.cof_static = 0.75;
             system.cof_kinetic = 0.5;
-            system.delta = 0.5;
-            system.stiffness_damping(frequency, damping_ratio);
+            system.delta = 0.50;
+            system.stiffness_damping(system.natural_frequency(), damping_ratio);
 
         std::string const file_header = "f:" + std::to_string(frequency)   // TODO Also store seed?
                                 + ",xi:" + std::to_string(damping_ratio)
                                 + ",k:" + std::to_string(system.k)
                                 + ",d:" + std::to_string(system.d)
                                 + ",m:" + std::to_string(system.m)
-                                + ",d:" + std::to_string(system.delta)
+                                + ",del:" + std::to_string(system.delta)
                                 + ",p:" + std::to_string(system.p)
                                 + ",cs:" + std::to_string(system.cof_static)
-                                + ",cd:" + std::to_string(system.cof_kinetic);
+                                + ",cd:" + std::to_string(system.cof_kinetic)
+                                + ",dt:" + std::to_string(time_step)
+                                + ",trans:" + std::to_string(transient_periods);
         
         auto intersections = calculate_poincare_sections(
             system, time_step, num_intersections, transient_periods);
 
-        long double ratio_displacement = (intersections.col(0).maxCoeff()-intersections.col(0).minCoeff())/system.d;
-        long double ratio_velocity = (intersections.col(1).maxCoeff()-intersections.col(1).minCoeff())/system.d;
+        long double const ratio_displacement = (intersections.col(0).maxCoeff()-intersections.col(0).minCoeff())/system.d;
+        long double const ratio_velocity = (intersections.col(1).maxCoeff()-intersections.col(1).minCoeff())/system.d;
 
-        if (std::abs(ratio_displacement) > 0.01 && std::abs(ratio_velocity) > 0.01) {
+        if (std::abs(ratio_displacement) > 0.1 && std::abs(ratio_velocity) > 0.1) {
             printf("Chaos may have been found for frequency %f! Storing results in file %s \n\n", frequency, output_file.c_str());
             writeToCSVfile(output_file, intersections, file_header);
         } else {
@@ -297,31 +308,36 @@ void single_poincare_chaos_finder(long double const frequency_start, long double
 }
 
  
-auto single_rate_sine_history(long double const frequency) -> void
+auto single_rate_sine_history(
+    long double const frequency,    
+    long double const damping_ratio,
+    long double const delta
+) -> void
 {
     // Physical parameters
     long double const displacement = 0.01;
 
     // Integration parameters
     long double const time_step = 1e-7;
-    int const transient_periods = 1000;
-    long double const simulation_time = 20/frequency;
+    int const transient_periods = 4000;
+    long double const simulation_time = 10/frequency;
     int const write_frequency = 100;
-    long double const damping_ratio = 0.1;
+    //long double const damping_ratio = 0.05;
 
     // Setup equation system
     SingleRateSine system(frequency);
     system.d = displacement;
-    system.k = 1e4;
-    system.m = 0.01;
-    system.p = 50.0;
-    system.cof_static = 1.0;
+    system.k = 1e5;
+    system.m = 0.05;
+    system.p = 1200.0;
+    system.cof_static = 0.75;
     system.cof_kinetic = 0.5;
-    system.delta = 1.0;
-    system.stiffness_damping(frequency, damping_ratio);
+    system.delta = delta;
+    double const natural_frequency = system.natural_frequency();
+    system.stiffness_damping(natural_frequency, damping_ratio);
     
     // Storage info
-    std::string const output_file = "history_single.csv";
+    std::string const output_file = "chaos/history_single_xi"+std::to_string(damping_ratio)+"_trans"+std::to_string(transient_periods) +".csv";
     std::string const file_header = "f:" + std::to_string(frequency)
                             + ",xi:" + std::to_string(damping_ratio)
                             + ",k:" + std::to_string(system.k)
@@ -331,7 +347,8 @@ auto single_rate_sine_history(long double const frequency) -> void
                             + ",p:" + std::to_string(system.p)
                             + ",cs:" + std::to_string(system.cof_static)
                             + ",cd:" + std::to_string(system.cof_kinetic)
-                            + ",dt:" + std::to_string(time_step);
+                            + ",dt:" + std::to_string(time_step)
+                            + ",trans:" + std::to_string(transient_periods);
 
     long double const period_time = 1.0/frequency;
     int const period_steps = (int)(period_time/time_step) + 1;
@@ -367,30 +384,35 @@ auto single_rate_sine_history(long double const frequency) -> void
 }
 
 
-auto single_rate_sine_poincare(long double const frequency) -> void
+auto single_rate_sine_poincare(
+    long double const frequency,
+    long double const damping_ratio
+) -> void
 {
     // Physical parameters
     long double const displacement = 0.01;
-    long double const damping_ratio = 0.05;
+    //long double const damping_ratio = 0.0001;
 
     // Integration parameters
     long double const time_step = 1e-7;
-    int const transient_periods = 1000;
+    int const transient_periods = 4000;
     int num_intersections = (int)1e4;
 
     // Setup equation system
     SingleRateSine system(frequency);
     system.d = displacement;
-    system.k = 1e4;
-    system.m = 0.01;
-    system.p = 50;
-    system.cof_static = 1.0;
+    system.k = 1e5;
+    system.m = 0.05;
+    system.p = 1200; //1255.301837;
+    system.cof_static = 0.75;
     system.cof_kinetic = 0.5;
     system.delta = 1.0;
-    system.stiffness_damping(frequency, damping_ratio);
+    double const natural_frequency = system.natural_frequency();
+    system.stiffness_damping(natural_frequency, damping_ratio);
     
     // Storage info
-    std::string const output_file = "poincare_single.csv";
+    std::string const output_file = "chaos/poincare_single_f" +std::to_string(frequency) +
+                                    "xi_"+ std::to_string(damping_ratio)+".csv";
     std::string const file_header = "f:" + std::to_string(frequency)
                         + ",xi:" + std::to_string(damping_ratio)
                         + ",k:" + std::to_string(system.k)
@@ -399,7 +421,8 @@ auto single_rate_sine_poincare(long double const frequency) -> void
                         + ",del:" + std::to_string(system.delta)
                         + ",p:" + std::to_string(system.p)
                         + ",cs:" + std::to_string(system.cof_static)
-                        + ",cd:" + std::to_string(system.cof_kinetic);
+                        + ",cd:" + std::to_string(system.cof_kinetic)
+                        + ",trans:" + std::to_string(transient_periods);
 
     long double const period_time = (long double)1.0/frequency;
     int const period_steps = (int)(period_time/time_step) + 1;

@@ -21,6 +21,7 @@ Plan:
 - [ ] Refactor (see design philosophy further down)
 - [ ] Write benchmarks
 - [ ] YAML-parser
+- [ ] Use fmt-library instead of native string concat
 - [ ] Simulation types
   - [X] Simple time integrator
   - [ ] Frequency sweep
