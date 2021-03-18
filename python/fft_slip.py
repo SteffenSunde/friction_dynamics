@@ -8,7 +8,7 @@ from scipy.signal import find_peaks
 from math import pi, log10
 
 def main(dof=0):
-    file = "data/mdof/fretting_loop_f15.000000_del2.000000_xi0.050000.csv"
+    file = "data/mdof/mdof_history.csv"
     frequency = 15
     displacement = 0.01
     df = pd.read_csv(file)
@@ -68,12 +68,13 @@ def plot_result(time, values1, values2, values3, values4, frequency, frequency_p
     #ax1.set_ylabel(r"Slip [($\times 10^{-2}$ mm)]")
     ax1.set_ylabel("Slip [mm]")
     ax1.set_title("Trailing end")
+    ax1.set_yscale("log")
 
     ax2.plot(xf2, yf2[:num_steps//2])
     xmax, ymax = calc_fft_limits(xf2, yf2)
     xmax = max(xmax, frequency)
     ax2.set_xlim((0, xmax))
-    ax2.set_ylim((0, ymax))
+    #ax2.set_ylim((0, ymax))
     #ax2.tick_params(axis='x', which='major')
     #ax2.yaxis.set_major_formatter(fmt)
     #ax2.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.1e'))
@@ -81,15 +82,17 @@ def plot_result(time, values1, values2, values3, values4, frequency, frequency_p
     #ax2.set_ylabel(r"Slip [($\times 10^{-2}$ mm)]")
     ax2.set_ylabel("Slip [mm]")
     ax2.set_title("Trailing contact edge")
+    ax2.set_yscale("log")
 
     ax3.plot(xf3, yf3[:num_steps//2])
     xmax, ymax = calc_fft_limits(xf3, yf3)
     xmax = max(xmax, frequency)
     ax3.set_xlim((0, xmax))
-    ax3.set_ylim((0, ymax))
+    #ax3.set_ylim((0, ymax))
     ax3.set_xlabel("Frequency [Hz]")
     ax3.set_ylabel("Slip [mm]")
     ax3.set_title("Contact center")
+    ax3.set_yscale("log")
 
     # ax4.plot(xf4, yf4[:num_steps//2])
     # xmax, ymax = calc_fft_limits(xf4, yf4)

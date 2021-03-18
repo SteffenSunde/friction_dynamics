@@ -1,8 +1,10 @@
+#%% Import dependencies
 import matplotlib.pyplot as plt
 import pandas as pd
 
+#%% Import data
 def main():
-    file = "data/mdof/P1200/fretting_loop_f15.000000_del5.000000_xi0.100000.csv"
+    file = "data/mdof/stiff_fretting_loop_P15.000000.csv"
     df = pd.read_csv(file, skiprows=1)
     df.columns = ["Q", "d"]
 
@@ -17,5 +19,8 @@ def main():
     plt.show()
 
 
+
+
+#%%
 if __name__ == "__main__":
     main()

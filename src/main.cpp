@@ -31,6 +31,7 @@ int main(int argc, const char* argv[])
             ("HertzRateSine", po::value<double>()->implicit_value(15.0), "N (100) blocks with rate-and state dependent friction and sine driver.")
             ("SingleRateHistory", po::value<double>()->implicit_value(15.0), "Calculate steady state for single DOF velocity-weakening friction at given frequency")
             ("SingleRatePoincare", po::value<double>()->implicit_value(15.0), "Calculate Poincare maps for single DOF velocity-weakening friction at given frequency")
+            ("HertzEvolve", "Calculate evolving Hertzian fretting contact.")
             ("xi", po::value<double>()->implicit_value(0.05), "Damping ratio of lowest natural frequency")
             ("delta", po::value<double>()->implicit_value(1.0), "Friction slope")
             //("SingleRatePoincare", po::value<std::vector<std::string> >()->default_value({}), "Poincare map for single oscillator")
@@ -91,12 +92,18 @@ int main(int argc, const char* argv[])
             // std::cout << vm["xi"].as<std::string>() << "\n";
             // double delta = vm["delta"].as<double>();
             // double xi = vm["xi"].as<double>();
-            double delta = 1.0;
-            double xi = 0.05;
-            double frequency = vm["SingleRateHistory"].as<double>();
+            double delta = 5;
+            //double xi = 0.05;
+            //double frequency = vm["SingleRateHistory"].as<double>();
             printf("Calculating steady-state for a single velocity weakening oscillator\n");
             //for (double xi: {0.01, 0.05, 0.075, 0.1}) {
-            //for (double delta: {0.5, 1.0, 2.0, 5.0}) {
+            //std::vector<long double> deltas = {0.5, 1.0, 2.0, 5.0};
+            //std::vector<long double> xis = {0.001, 0.01, 0.05, 0.1};
+            //std::vector<long double> xis = {0.0001};
+            //#pragma omp parallel for
+            //for (int i=0; i<xis.size(); ++i) {
+                auto xi = vm["SingleRateHistory"].as<double>();
+                double frequency = 5;
                 single_rate_sine_history(frequency, xi, delta);
             //}
         } else if(vm.count("SingleRatePoincare")) {
@@ -115,13 +122,14 @@ int main(int argc, const char* argv[])
         } else if (vm.count("HertzRateSine")) {
             //double const frequency = vm["HertzRateSine"].as<double>();
 
-            std::vector<double> deltas = {0.5, 5.0};
-
+            std::vector<double> pressures = {15, 150};
             #pragma omp parallel for
-            for(int i=0; i < deltas.size(); ++i) {
+            for(int i=0; i < pressures.size(); ++i) {
                 double const frequency = 15;
-                double const delta = deltas[i];
-                hertz_rate_sine_slip(frequency, delta);
+                double const xi = 0.05;
+                double const delta = 1.0;
+                double const pressure = pressures[i];
+                hertz_rate_sine_slip(frequency, delta, xi, pressure);
             }
 
             // std::for_each(std::execution::par_unseq, 
@@ -132,6 +140,18 @@ int main(int argc, const char* argv[])
         } else if (vm.count("input")) {
             std::string const& file = vm["input"].as<std::string>();
             std::cout << "Running on input-file " << file << "\n";
+        } else if (vm.count("HertzEvolve")) {
+
+            std::vector<double> deltas = {0.5, 5.0};
+            #pragma omp parallel for
+            for(int i=0; i < deltas.size(); ++i) {
+                double const frequency = 15.0;
+                double const delta = deltas[i];
+                double const damping_ratio = 0.05;
+                double const evolve_rate = 0.01;
+                
+                hertz_evolve(frequency, delta, damping_ratio, evolve_rate);
+            }
         }
     } catch (const po::error& ex) {
         std::cerr << ex.what() << "\n";

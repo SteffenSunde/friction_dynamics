@@ -24,10 +24,10 @@ def main():
 
     figure_title = "Stick vs slip solution"
 
-    file_slip = "data/stick_vs_slip/history_single_stick_P1500.csv"
+    file_slip = "data/sdof/compare_stickslip/history_single_P1200.csv"
     meta_slip = parse_header(file_slip)
 
-    file_stick = "data/stick_vs_slip/history_single_slip_P1200.csv"
+    file_stick = "data/sdof/compare_stickslip/history_single_P1500.csv"
     meta_stick = parse_header(file_stick)
     #figure_title = "".join(["{}: {} ".format(key, value) for key, value in meta.items()])
 
@@ -55,47 +55,50 @@ def main():
     fig = plt.figure(figsize=(8,6))
     
     ax1 = fig.add_subplot(221)
-    ax1.plot(df_stick.x, df_stick.v, label="Block", linestyle="-", linewidth=0.75)
-    ax1.plot(df_slip.x_belt, df_slip.v_belt, label="Belt", linewidth=0.75)
+    ax1.plot(df_stick.x, df_stick.v, label="Block")
+    ax1.plot(df_slip.x_belt, df_slip.v_belt, label="Belt")
     ax1.legend()
     ax1.set_xlabel("Displacement [mm]")
     ax1.set_ylabel("Velocity [mm/s]")
     ax1.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
     ax1.legend(loc="upper left")
-    ax1.grid()
+    #ax1.grid()
 
     ax2 = fig.add_subplot(222)
     ax2.plot(df_stick.t, df_stick.slip, label="Slip")
     ax2.plot(df_stick.t, df_stick.x_belt, label="Belt")
     ax2.set_xlim((df_stick.t.iloc[0], df_stick.t.iloc[0]+2/frequency))
     ax2.set_xlabel("Time [s]")
-    ax2.set_ylabel("Displacement [mm]")
+    ax2.set_ylabel("Slip [mm]")
     ax2.legend(loc="upper left")
+    ax2.set_xticks([ax2.get_xticks()[1], ax2.get_xticks()[-1]])
     ax2.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-    ax2.grid()
+    ax2.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    #ax2.grid()
 
     ax3 = fig.add_subplot(223)
-    ax3.plot(df_slip.x, df_slip.v, label="Block", linestyle="-", linewidth=0.75)
-    ax3.plot(df_slip.x_belt, df_slip.v_belt, label="Belt", linewidth=0.75)
+    ax3.plot(df_slip.x, df_slip.v, label="Block", linestyle="-")
+    ax3.plot(df_slip.x_belt, df_slip.v_belt, label="Belt")
     ax3.legend()
     ax3.set_xlabel("Displacement [mm]")
     ax3.set_ylabel("Velocity [mm/s]")
     ax3.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
     ax3.legend(loc="upper left")
-    ax3.grid()
+    #ax3.grid()
 
     ax4 = fig.add_subplot(224)
     ax4.plot(df_slip.t, df_slip.slip, label="Slip")
     ax4.plot(df_slip.t, df_slip.x_belt, label="Belt")
     ax4.set_xlim((df_slip.t.iloc[0], df_slip.t.iloc[0]+2/frequency))
     ax4.set_xlabel("Time [s]")
-    ax4.set_ylabel("Displacement [mm]")
+    ax4.set_ylabel("Slip [mm]")
     ax4.legend(loc="upper left")
+    ax4.set_xticks([ax4.get_xticks()[1], ax4.get_xticks()[-1]])
     ax4.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-    ax4.grid()
+    ax4.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    #ax4.grid()
     
-    
-    fig.suptitle(figure_title)
+    #fig.suptitle(figure_title)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     if save_figure: fig.savefig(figure_path)
     plt.show()

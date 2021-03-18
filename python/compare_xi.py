@@ -24,7 +24,7 @@ def parse_header(file_path):
 def main():
     #matplotlib.rcParams.update({'font.size': 14})
 
-    files = glob.glob("data/xi/P1500/history*xi*")
+    files = glob.glob("data/sdof/compare_xi/history*xi*")
 
     dataframes = []
     metas = []
@@ -47,33 +47,38 @@ def main():
 
     figure_title = r"Comparing Damping ratios"
 
-    save_figure = True
+    save_figure = False
     figure_path = "data/compare_xi.pdf"
 
     fig = plt.figure(figsize=(8,4))
 
     ax2 = fig.add_subplot(121)
-    ax2.plot(dataframes[0].x_belt, dataframes[0].v_belt, label="Belt", linewidth=0.75)
+    ax2.plot(dataframes[0].x_belt, dataframes[0].v_belt, label="Belt")
     for i, df in enumerate(dataframes):
-        ax2.plot(df.x, df.v, label=r"$\xi={:.2f}$".format(float(metas[i]["xi"])), linestyle="-", linewidth=0.75)
-    ax2.legend(loc="upper left")
+        ax2.plot(df.x, df.v, label=r"$\xi={:.3f}$".format(float(metas[i]["xi"])))
+    ax2.legend(loc="lower left")
     ax2.set_xlabel("Displacement [mm]")
     ax2.set_ylabel("Velocity [mm/s]")
     ax2.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
+    ax2.set_ylim((-3.5, 1.1))
+    ax2.set_xlim((0.002, 0.0101))
+    ax2.grid()
 
     ax3 = fig.add_subplot(122)
     ax3.plot(dataframes[0].t, dataframes[0].x_belt, label="Belt")
     for i, df in enumerate(dataframes):
-        ax3.plot(df.t, df.slip, label=r"$\xi={:.2f}$".format(float(metas[i]["xi"])))
+        ax3.plot(df.t, df.slip, label=r"$\xi={:.3f}$".format(float(metas[i]["xi"])))
     ax3.set_xlim((df.t.iloc[0], df.t.iloc[0]+2/frequency))
     ax3.set_xlabel("Time [s]")
-    ax3.set_ylabel("Displacement [mm]")
-    ax3.legend(loc="upper left")
+    ax3.set_ylabel("Slip [mm]")
+    ax3.legend(loc="lower left")
     ax3.set_xticks([ax3.get_xticks()[1], ax3.get_xticks()[-1]])
     ax3.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
     ax3.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    ax3.grid()
 
     #fig.suptitle(figure_title)
+    
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     if save_figure: fig.savefig(figure_path)
     plt.show()

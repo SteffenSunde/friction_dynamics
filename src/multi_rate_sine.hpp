@@ -42,12 +42,18 @@ struct HertzRateSine {
 
     HertzRateSine(int _N, double _p, int _num_free_blocks);
 
-    inline double friction(double const& v_rel) const {
-        return 1.0/(1.0+std::abs(v_rel));
-    }
+    // inline double friction(double const& v_rel) const {
+    //     return 1.0/(1.0+std::abs(v_rel));
+    // }
 
     inline double scale_friction(double const& vrel) const {
-        return 1.0/std::abs(1.0 + delta*vrel);
+        //return 1.0/std::abs(1.0 + delta*vrel);  ERROR
+        return 1.0/(1.0 + delta*std::abs(vrel));
+    }
+
+    inline double friction(double const& vrel, double const& kinetic_friction) const {
+        //return 1.0/std::abs(1.0 + delta*vrel);  ERROR
+        return kinetic_friction + (cof_static - kinetic_friction)/(1.0 + delta*std::abs(vrel));
     }
 
     auto slope(Vec const& state) const -> Vec;
@@ -62,7 +68,8 @@ struct HertzRateSine {
     auto resultant_shear_force(Vec const& state) const -> double;
     double lowest_natural_frequency() const;
     double highest_natural_frequenc() const;
-    void set_roughness(double const& height, double const wavelength);
+    void set_roughness(double const& height, double const& wavelength);  // TODO
+    void set_roughness(double const& scale);  // Gaussian 0-mean distribution scaling according to peak pressure
     void damping_ratio(double const ratio_lowest, double const ratio_highest);
     void stiffness_damping(double const frequency, double const ratio);
 };
@@ -76,7 +83,19 @@ auto calculate_hertz_rate_sine(
 
 void hertz_rate_sine();
 void hertz_rate_sine_shear(double const frequency);
-void hertz_rate_sine_slip(double const frequency, double const delta);
+
+void hertz_rate_sine_slip(
+    double const frequency, 
+    double const delta,
+    double const damping_ratio,
+    double const pressure
+);
+
+void hertz_evolve(
+    double const frequency, 
+    double const delta, 
+    double const damping_ratio,
+    double const evolve_rate);
 
 void calculate_multi_poincare_sections();
 

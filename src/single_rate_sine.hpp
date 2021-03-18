@@ -35,7 +35,8 @@ struct SingleRateSine {
     SingleRateSine(long double const& frequency) : f(frequency) {}
 
     long double friction(long double const& v_rel) const {
-        return 1.0/(1.0+delta*std::abs(v_rel));
+        //return 1.0/(1.0+delta*std::abs(v_rel));
+        return cof_kinetic + (cof_static - cof_kinetic)/(1.0 + delta*std::abs(v_rel));
     }
 
     void stiffness_damping(long double const frequency, long double const ratio);

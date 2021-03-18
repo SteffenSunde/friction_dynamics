@@ -41,7 +41,8 @@ auto SingleRateSine::slope(Vec3 const& state) const -> Vec3 {
         }
     } else {
         dxdt[0] = state[1];
-        dxdt[1] = 1.0/m * (external_force - friction(relative_velocity)*cof_kinetic*p*sgn(relative_velocity));
+        //dxdt[1] = 1.0/m * (external_force - friction(relative_velocity)*cof_kinetic*p*sgn(relative_velocity));
+        dxdt[1] = 1.0/m * (external_force - friction(relative_velocity)*p*sgn(relative_velocity));
     }
 
     dxdt[2] = (long double)1.0;
@@ -329,15 +330,15 @@ auto single_rate_sine_history(
     system.d = displacement;
     system.k = 1e5;
     system.m = 0.05;
-    system.p = 1200.0;
+    system.p = 400.0;
     system.cof_static = 0.75;
-    system.cof_kinetic = 0.5;
+    system.cof_kinetic = 0.25;
     system.delta = delta;
     double const natural_frequency = system.natural_frequency();
     system.stiffness_damping(natural_frequency, damping_ratio);
     
     // Storage info
-    std::string const output_file = "chaos/history_single_xi"+std::to_string(damping_ratio)+"_trans"+std::to_string(transient_periods) +".csv";
+    std::string const output_file = "sdof_history.csv"; //"sdof/compare_chaos/del05/history_single_xi"+std::to_string(damping_ratio) + ".csv";
     std::string const file_header = "f:" + std::to_string(frequency)
                             + ",xi:" + std::to_string(damping_ratio)
                             + ",k:" + std::to_string(system.k)
@@ -412,7 +413,7 @@ auto single_rate_sine_poincare(
     
     // Storage info
     std::string const output_file = "chaos/poincare_single_f" +std::to_string(frequency) +
-                                    "xi_"+ std::to_string(damping_ratio)+".csv";
+                                    "xi_"+ std::to_string(damping_ratio)+" .csv";
     std::string const file_header = "f:" + std::to_string(frequency)
                         + ",xi:" + std::to_string(damping_ratio)
                         + ",k:" + std::to_string(system.k)
