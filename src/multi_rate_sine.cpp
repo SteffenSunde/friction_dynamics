@@ -49,7 +49,7 @@ void HertzRateSine::set_roughness(double const& scale)
 auto HertzRateSine::slope(Vec const& x) const -> Vec 
 {
     /*
-    TODO: Remove redundant code and clean up
+    TODO: Remove redundant code and clean up (See friction calculation)
     */
     Vec dxdt(3*N+1);
 
@@ -81,10 +81,10 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
         dxdt(1) = 1.0/m*(external_force - friction_force);
     }
 
-    dxdt(2) = evolve_cof*std::abs(x(0) - belt_position); // TODO: Friction work rather?? Ruiz??
+    dxdt(2) = evolve_cof*std::abs(x(0) - belt_position);
 
     // Loop over interiour blocks
-    if (N > 1) { // TODO Check state coefficients (damping specifically!)
+    if (N > 1) {
         for (int i=1; i < N-1; ++i) { 
             external_force = k*(x(3*i+3) - x(3*i)) + beta*k*(x(3*i+4) - x(3*i+1))
                             -k*(x(3*i) - x(3*i-3)) - beta*k*(x(3*i+1) - x(3*i-2))
@@ -176,17 +176,11 @@ auto HertzRateSine::calc_displacement_amplitude(Vec const& state) const -> doubl
     return displacement;
 }
 
-double HertzRateSine::sum_shear(Vec const& state) const
-{
-    return 0;  // TODO Remove?
-}
-
-
-auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
+auto HertzRateSine::friction_force(Vec const& x, int block) const -> double
 {
     /*
-    TODO: Check if correct. Must check dynamic equilbrium in stick condition??
-    Currently not correct.
+    TODO: Irradicate behaviour when natural frequency band is wide! Why?
+    TODO: Rename to friction_force
     */
     double const& time = x(3*N);
     double const belt_velocity = velocity_at_time(time);
@@ -220,6 +214,59 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
         double const kinetic_friction = (cof_kinetic + x(3*block+2))*scale_friction(relative_velocity)*pressure(block)*sgn(relative_velocity);
         return kinetic_friction;
     }
+}
+
+
+auto HertzRateSine::resultant_friction_force(Vec const& state) const -> double
+{
+    double force = 0.0;
+    for (auto i=0; i < N; ++i) {
+        force += friction_force(state, i);
+    }
+    return force;
+}
+
+
+auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
+{
+    /*
+    TODO: Irradicate behaviour when natural frequency band is wide! Why?
+    TODO: Rename to friction_force
+    */
+    double const& time = x(3*N);
+    double const belt_velocity = velocity_at_time(time);
+    double const belt_acceleration = -std::pow(2.0*M_PI*f, 2.0)*d*std::sin(2.0*M_PI*f*time);
+    double const relative_velocity = x(3*block+1) - belt_velocity; 
+
+    return k0*x(3*block);
+
+    // double external_force = 0;
+    // if (block == 0) {  // Left end
+    //     external_force = -k0*x(0) - (alpha*m + beta*k0)*x(1);
+    //     if (N > 1) {
+    //         external_force += k*(x(3)-x(0)) + (beta*k)*(x(4) - x(1));
+    //     }
+    // } else if (block == N-1) {  // Right end
+    //     external_force = - k*(x(3*N-3)-x(3*N-6)) - beta*k*(x(3*N-2)-x(3*N-5))
+    //                      - k0*x(3*N-3) - (alpha*m + beta*k0)*x(3*N-2);
+    // } else {  // In-between
+    //     external_force = k*(x(3*block+3) - x(3*block)) + beta*k*(x(3*block+4) - x(3*block+1))
+    //                 -k*(x(3*block) - x(3*block-3)) - beta*k*(x(3*block+1) - x(3*block-2))
+    //                 -k0*x(3*block) - (alpha*m + beta*k0)*x(3*block+1);        
+    // }
+    
+    // if (std::abs(relative_velocity) < eps) {
+    //     double const friction_limit = (cof_static + x(3*block+2))*pressure(block);
+    //     double const stick_force = std::abs(external_force + m*belt_acceleration);
+    //     if(stick_force <= friction_limit) {
+    //         return -stick_force*sgn(external_force);
+    //     } else {
+    //         return -friction_limit*sgn(external_force);
+    //     }
+    // } else {
+    //     double const kinetic_friction = (cof_kinetic + x(3*block+2))*scale_friction(relative_velocity)*pressure(block)*sgn(relative_velocity);
+    //     return kinetic_friction;
+    // }
 }
 
 

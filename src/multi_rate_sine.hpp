@@ -64,8 +64,14 @@ struct HertzRateSine {
     double sum_shear(Vec const& state) const;
     auto calc_natural_frequencies() const -> std::vector<double>;
     auto get_initial() const -> Vec; 
+
+    auto friction_force(Vec const& state, int block) const -> double;
+    auto resultant_friction_force(Vec const& state) const -> double;
+
     auto shear_force(Vec const& state, int block) const -> double;
     auto resultant_shear_force(Vec const& state) const -> double;
+
+
     double lowest_natural_frequency() const;
     double highest_natural_frequenc() const;
     void set_roughness(double const& height, double const& wavelength);  // TODO
