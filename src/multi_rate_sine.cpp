@@ -239,7 +239,7 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
     double const belt_acceleration = -std::pow(2.0*M_PI*f, 2.0)*d*std::sin(2.0*M_PI*f*time);
     double const relative_velocity = x(3*block+1) - belt_velocity; 
 
-    return k0*(x(3*block) - belt_position);
+    return k0*x(3*block) + (alpha*m + beta*k0)*x(3*block+1);
 
     // double external_force = 0;
     // if (block == 0) {  // Left end
@@ -487,7 +487,7 @@ void hertz_rate_sine_slip(
     int const num_blocks = 100;
     int const num_free_blocks = 5;  // On each side
     //double const pressure = 150; 
-    double transient_time = 1000/frequency;
+    double transient_time = 100/frequency;
     double const simulation_time = 2;
     int const write_frequency = 100;
     double const stiffness = 1e5;
