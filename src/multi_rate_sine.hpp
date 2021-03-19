@@ -51,9 +51,11 @@ struct HertzRateSine {
         return 1.0/(1.0 + delta*std::abs(vrel));
     }
 
-    inline double friction(double const& vrel, double const& kinetic_friction) const {
+    inline double friction(double const& vrel, double const& extra_cof) const {
         //return 1.0/std::abs(1.0 + delta*vrel);  ERROR
-        return kinetic_friction + (cof_static - kinetic_friction)/(1.0 + delta*std::abs(vrel));
+        double const kinetic_cof = cof_kinetic + extra_cof;
+        double const static_cof = cof_static + extra_cof;
+        return kinetic_cof + (static_cof - kinetic_cof)/(1.0 + delta*std::abs(vrel));
     }
 
     auto slope(Vec const& state) const -> Vec;

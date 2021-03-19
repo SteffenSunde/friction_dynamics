@@ -76,8 +76,7 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
         }
     } else {
         dxdt(0) = x(1);
-        double const kinetic_friction = cof_kinetic + x(2);
-        double const friction_force =  friction(relative_velocity, kinetic_friction)*pressure(0)*sgn(relative_velocity);
+        double const friction_force =  friction(relative_velocity, x(2))*pressure(0)*sgn(relative_velocity);
         dxdt(1) = 1.0/m*(external_force - friction_force);
     }
 
@@ -99,13 +98,12 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
                     dxdt(3*i+1) = belt_acceleration;
                 } else {
                     dxdt(3*i) = x(3*i+1);
-                    dxdt(3*i+1) = 1.0/m*(external_force - friction_limit*sgn(external_force));  // *sgn(v_rel)TODO Check. Should belt acc be accounted for?
+                    dxdt(3*i+1) = 1.0/m*(external_force - friction_limit*sgn(external_force));
                 }
             } else {
                 dxdt(3*i) = x(3*i+1);
-                double const kinetic_friction = cof_kinetic + x(3*i+2);
-                double const friction_force = friction(relative_velocity, kinetic_friction)*pressure(i)*sgn(relative_velocity);
-                dxdt(3*i+1) = 1.0/m*(external_force - kinetic_friction);
+                double const friction_force = friction(relative_velocity, x(3*i+2))*pressure(i)*sgn(relative_velocity);
+                dxdt(3*i+1) = 1.0/m*(external_force - friction_force);
             }
 
             dxdt(3*i+2) = evolve_cof*std::abs(x(3*i) - belt_position);
@@ -118,7 +116,7 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
         
         if (std::abs(relative_velocity) < eps) {
             double const friction_limit = (cof_static + x(3*N-1)) * pressure(N-1);
-            double const stick_force = abs(external_force + m*belt_acceleration);
+            double const stick_force = std::abs(external_force + m*belt_acceleration);
             if(stick_force <= friction_limit) {
                 dxdt(3*N-3) = belt_velocity; 
                 dxdt(3*N-2) = belt_acceleration;
@@ -128,9 +126,8 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
             }
         } else {
             dxdt(3*N-3) = x(3*N-2);
-            double const kinetic_friction = cof_kinetic + x(3*N-1);
-            double const friction_force = friction(relative_velocity, kinetic_friction)*pressure(N-1)*sgn(relative_velocity);
-            dxdt(3*N-2) = 1.0/m*(external_force - kinetic_friction);
+            double const friction_force = friction(relative_velocity, x(3*N-1))*pressure(N-1)*sgn(relative_velocity);
+            dxdt(3*N-2) = 1.0/m*(external_force - friction_force);
         }
         dxdt(3*N-1) = evolve_cof*std::abs(x(3*N-3) - belt_position);
     }
@@ -239,35 +236,37 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
     double const belt_acceleration = -std::pow(2.0*M_PI*f, 2.0)*d*std::sin(2.0*M_PI*f*time);
     double const relative_velocity = x(3*block+1) - belt_velocity; 
 
-    return k0*x(3*block) + (alpha*m + beta*k0)*x(3*block+1);
+    //return k0*x(3*block) + (alpha*m + beta*k0)*x(3*block+1);
 
-    // double external_force = 0;
-    // if (block == 0) {  // Left end
-    //     external_force = -k0*x(0) - (alpha*m + beta*k0)*x(1);
-    //     if (N > 1) {
-    //         external_force += k*(x(3)-x(0)) + (beta*k)*(x(4) - x(1));
-    //     }
-    // } else if (block == N-1) {  // Right end
-    //     external_force = - k*(x(3*N-3)-x(3*N-6)) - beta*k*(x(3*N-2)-x(3*N-5))
-    //                      - k0*x(3*N-3) - (alpha*m + beta*k0)*x(3*N-2);
-    // } else {  // In-between
-    //     external_force = k*(x(3*block+3) - x(3*block)) + beta*k*(x(3*block+4) - x(3*block+1))
-    //                 -k*(x(3*block) - x(3*block-3)) - beta*k*(x(3*block+1) - x(3*block-2))
-    //                 -k0*x(3*block) - (alpha*m + beta*k0)*x(3*block+1);        
-    // }
+    double external_force = 0;
+    if (block == 0) {  // Left end
+        external_force = -k0*x(0) - (alpha*m + beta*k0)*x(1);
+        if (N > 1) {
+            external_force += k*(x(3)-x(0)) + (beta*k)*(x(4) - x(1));
+        }
+    } else if (block == N-1) {  // Right end
+        external_force = - k*(x(3*N-3)-x(3*N-6)) - beta*k*(x(3*N-2)-x(3*N-5))
+                         - k0*x(3*N-3) - (alpha*m + beta*k0)*x(3*N-2);
+    } else {  // In-between
+        external_force = k*(x(3*block+3) - x(3*block)) + beta*k*(x(3*block+4) - x(3*block+1))
+                    -k*(x(3*block) - x(3*block-3)) - beta*k*(x(3*block+1) - x(3*block-2))
+                    -k0*x(3*block) - (alpha*m + beta*k0)*x(3*block+1);        
+    }
     
-    // if (std::abs(relative_velocity) < eps) {
-    //     double const friction_limit = (cof_static + x(3*block+2))*pressure(block);
-    //     double const stick_force = std::abs(external_force + m*belt_acceleration);
-    //     if(stick_force <= friction_limit) {
-    //         return -stick_force*sgn(external_force);
-    //     } else {
-    //         return -friction_limit*sgn(external_force);
-    //     }
-    // } else {
-    //     double const kinetic_friction = (cof_kinetic + x(3*block+2))*scale_friction(relative_velocity)*pressure(block)*sgn(relative_velocity);
-    //     return kinetic_friction;
-    // }
+    if (std::abs(relative_velocity) < eps) {
+        double const friction_limit = (cof_static + x(3*block+2))*pressure(block);
+        double const stick_force = external_force + m*belt_acceleration;
+        if(std::abs(stick_force) <= friction_limit) {
+            return -stick_force; //*sgn(external_force + m*belt_acceleration);
+            //return m*belt_acceleration;
+        } else {
+            return -friction_limit*sgn(external_force);
+            //return external_force - friction_limit*sgn(external_force);
+        }
+    } else {
+        double const kinetic_friction = friction(relative_velocity, x(3*block+2))*pressure(block)*sgn(relative_velocity);
+        return -kinetic_friction;
+    }
 }
 
 

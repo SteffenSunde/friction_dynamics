@@ -122,7 +122,7 @@ int main(int argc, const char* argv[])
         } else if (vm.count("HertzRateSine")) {
             //double const frequency = vm["HertzRateSine"].as<double>();
 
-            std::vector<double> pressures = {15, 150};
+            std::vector<double> pressures = {10, 100, 1000};
             #pragma omp parallel for
             for(int i=0; i < pressures.size(); ++i) {
                 double const frequency = 15;

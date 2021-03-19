@@ -4,7 +4,7 @@ import pandas as pd
 
 #%% Import data
 def main():
-    file = "data/mdof/stiff_fretting_loop_P15.000000.csv"
+    file = "data/mdof/stiff_fretting_loop_P1000.000000.csv"
     df = pd.read_csv(file, skiprows=1)
     df.columns = ["Q", "d"]
 
