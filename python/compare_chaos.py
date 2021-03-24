@@ -24,12 +24,14 @@ def main():
 
     figure_title = "Regular vs Chaotic solution"
 
-    file_regular = "data/chaos/history_single_xi0.050000_trans4000.csv"
+    file_regular = "data/sdof/newdamp/compare_chaos/history_single_p1200.000000_xi0.000000.csv"
     meta_regular = parse_header(file_regular)
 
-    file_chaos = "data/chaos/history_single_xi0.000100_trans4000.csv"
+    file_chaos = "data/sdof/newdamp/compare_chaos/history_single_p1200.000000_xi0.050000.csv"
     meta_chaos = parse_header(file_chaos)
     #figure_title = "".join(["{}: {} ".format(key, value) for key, value in meta.items()])
+
+    print(meta_chaos)
 
     save_figure = False
     figure_path = "data/compare_chaos.pdf"

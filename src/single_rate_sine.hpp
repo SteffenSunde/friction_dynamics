@@ -92,6 +92,7 @@ void single_poincare_chaos_finder(long double const frequency_start, long double
 
 auto single_rate_sine_history(
     long double const frequency, 
+    long double const pressure,
     long double const ratio, 
     long double const delta
 ) -> void;

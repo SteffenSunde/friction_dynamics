@@ -25,7 +25,7 @@ def parse_header(file_path):
 def main():
     #matplotlib.rcParams.update({'font.size': 14})
 
-    files = glob.glob("data/sdof/compare_delta/P1200/history_single*del*")
+    files = glob.glob("data/sdof/newdamp/compare_delta/P1200/history_single*del*")
 
     dataframes = []
     metas = []
@@ -65,8 +65,8 @@ def main():
     ax2.set_xlabel("Displacement [mm]")
     ax2.set_ylabel("Velocity [mm/s]")
     ax2.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
-    ax2.set_xlim((0.0015, 0.0101))
-    ax2.set_ylim((-0.15, 1.01))
+    ax2.set_xlim((0, 0.0101))
+    ax2.set_ylim((-4, 1.01))
     ax2.grid()
 
     ax3 = fig.add_subplot(122)
@@ -75,12 +75,12 @@ def main():
     for i, df in enumerate(dataframes):
         ax3.plot(df.t, df.slip, label=r"$\delta={:.1f}$".format(float(metas[i]["del"])))
 
-    ax3.set_xlim((df.t.iloc[0], df.t.iloc[0]+2/frequency))
+    ax3.set_xlim((df.t.iloc[0]+0.0003, df.t.iloc[0]+1/frequency+0.0003))
     ax3.set_xlabel("Time [s]")
     ax3.set_ylabel("Slip [mm]")
     ax3.legend(loc="lower left")
-    ax3.set_xticks([ax3.get_xticks()[1], ax3.get_xticks()[-1]])
-    ax3.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+    ax3.set_xticks([ax3.get_xticks()[len(ax3.get_xticks())//2], ax3.get_xticks()[-1]])
+    ax3.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax3.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     ax3.grid()
 

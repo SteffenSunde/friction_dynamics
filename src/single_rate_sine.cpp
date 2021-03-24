@@ -62,8 +62,8 @@ void SingleRateSine::stiffness_damping(long double const frequency, long double 
 
     */
     alpha = 0.0;
-    //beta = ratio/(M_PI*frequency);
-    beta = 4.0*M_PI*ratio/frequency;
+    beta = ratio/(M_PI*frequency);
+    //beta = 4.0*M_PI*ratio/frequency;
 }
 
 
@@ -310,7 +310,8 @@ void single_poincare_chaos_finder(long double const frequency_start, long double
 
  
 auto single_rate_sine_history(
-    long double const frequency,    
+    long double const frequency,  
+    long double const pressure,  
     long double const damping_ratio,
     long double const delta
 ) -> void
@@ -330,15 +331,15 @@ auto single_rate_sine_history(
     system.d = displacement;
     system.k = 1e5;
     system.m = 0.05;
-    system.p = 400.0;
+    system.p = pressure;
     system.cof_static = 0.75;
-    system.cof_kinetic = 0.25;
+    system.cof_kinetic = 0.50;
     system.delta = delta;
     double const natural_frequency = system.natural_frequency();
     system.stiffness_damping(natural_frequency, damping_ratio);
     
     // Storage info
-    std::string const output_file = "sdof_history.csv"; //"sdof/compare_chaos/del05/history_single_xi"+std::to_string(damping_ratio) + ".csv";
+    std::string const output_file = "sdof/newdamp/compare_stickslip/history_single_p"+std::to_string(pressure) +"_xi"+std::to_string(damping_ratio) + ".csv";
     std::string const file_header = "f:" + std::to_string(frequency)
                             + ",xi:" + std::to_string(damping_ratio)
                             + ",k:" + std::to_string(system.k)

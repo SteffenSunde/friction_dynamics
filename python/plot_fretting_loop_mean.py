@@ -21,26 +21,30 @@ def parse_header(file_path):
 #%% Import data
 def main():
 
-    # fig_path = "data_mdof_fretting_loop_f15_P15_xi005.pdf"
-    # file = "data/mdof/mdof_fretting_loop15.000000_P15.000000_xi0.050000.csv"
-
-    #file = "data/mdof/mdof_fretting_loop_f15.000000_P15.000000_xi0.150000_del0.500000.csv"
-    file = "data/mdof/stiff_fretting_loop_P150.000000.csv"  # _f15.000000_P15.000000_xi0.150000_del0.500000.csv"
+    file = "data/mdof/mass_damped/massdamped_mdof_fretting_loop_f15.000000_P10.000000_xi0.050000_del1.000000.csv"
     
     meta = parse_header(file)
     fig_path = "data/mdof/for_thesis/fretting_loop_f{:.0f}_P{:.0f}_xi{:.4f}_del{:.4f}.pdf".format(float(meta["f"]), float(meta["p"]), float(meta["xi"]), float(meta["del"])) 
-    x_lower, y_lower = -0.008161, 0.008427  # P15
-    #x_lower, y_lower = -0.01, 0.01
+    x_lower, y_lower = -0.01, 0.01#-0.01,0.01
 
     savefig = False
 
     df = pd.read_csv(file, skiprows=1)
     df.columns = ["Q", "d"]
+
+    # Attempt to read proper displacement
+    file_displ = "data/mdof/mass_damped/mdof_slip_history_f15.000000_P10.000000_xi0.050000_del1.000000.csv"
+    df_displ = pd.read_csv(file_displ, skiprows=1)
+    df_displ.columns = ["time", "slip_end", "slip_edge", "slip_center", "displ"]
+
     
     print(meta)
     frequency = float(meta["f"])
+    pressure = float(meta["p"])
+    damping = float(meta["xi"])
+    slope = float(meta["del"])
 
-    num_cycles = int(10.0 * frequency + 0.5)
+    num_cycles = int(2.0 * frequency + 0.5)
     chunk_size = int(df.shape[0] / num_cycles)
 
     data = np.zeros((num_cycles-1, chunk_size))
@@ -52,7 +56,8 @@ def main():
     half = len(mean)//2
     quart = half//2
 
-    x_cycle = df.d.iloc[:chunk_size]
+    #x_cycle = df.d.iloc[:chunk_size]
+    x_cycle = df_displ.displ[:chunk_size]
     upper = mean+std
     lower = mean-std
 
@@ -70,19 +75,27 @@ def main():
             x_inner.append(0)
 
 
-    fig, ax = plt.subplots(figsize=(6,4))
-    ax.plot(x_cycle, mean, label="Mean cycle (Max. {:.2f})".format(mean.max()), color="green")
+    fig, ax = plt.subplots(figsize=(5,4))
+    ax.plot(x_cycle, mean, label="Mean cycle (Mean SD {:.2f})".format(std.mean()), color="green")
     #ax.plot(x_cycle, outer, label="Outer")
     #ax.plot(x_inner, filter_inner, label="Inner")
-    ax.fill_between(x_cycle, outer, filter_inner, label=r"SD (Avg. {:.1f})".format(mean.mean()), alpha=0.25)
+    ax.fill_between(x_cycle, outer, filter_inner, label="SD. (Mean {:.2f})".format(std.mean()), alpha=0.25)
     #plt.fill_between(x_cycle, inner, outer, where=filter_inner, alpha=0.5)
-    ax.set_xticks((-0.01, 0.0, 0.01))
-    ax.set_xlabel(r"Displacement, $\delta$ [mm]")
+    #ax.set_xticks((-0.01, -0.005, 0.0, 0.005, 0.01))
+    ax.set_xlabel(r"Displacement, $d$ [mm]")
     ax.set_ylabel(r"Shear, $Q$ [N]")
-    plt.tight_layout()
-    ax.legend()
+    
+    ax.legend(loc="upper left")
     ax.grid()
 
+    bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.8)
+    text_props = dict(fontsize=10)
+    text = r"$p_0$={:.1f}".format(pressure) \
+        + "\n" + r"$\xi$={:.2f}".format(damping) \
+        + "\n" + r"$\delta$={:.1f}".format(slope)
+    ax.text(0.60*x_cycle.max(), 0.95*mean.min(), text , bbox=bbox_props, fontdict=text_props)
+    
+    plt.tight_layout()
     if savefig: fig.savefig(fig_path)
     plt.show()
     

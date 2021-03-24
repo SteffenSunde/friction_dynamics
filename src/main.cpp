@@ -92,20 +92,43 @@ int main(int argc, const char* argv[])
             // std::cout << vm["xi"].as<std::string>() << "\n";
             // double delta = vm["delta"].as<double>();
             // double xi = vm["xi"].as<double>();
-            double delta = 5;
+            //double delta = 1;
             //double xi = 0.05;
             //double frequency = vm["SingleRateHistory"].as<double>();
             printf("Calculating steady-state for a single velocity weakening oscillator\n");
             //for (double xi: {0.01, 0.05, 0.075, 0.1}) {
             //std::vector<long double> deltas = {0.5, 1.0, 2.0, 5.0};
-            //std::vector<long double> xis = {0.001, 0.01, 0.05, 0.1};
-            //std::vector<long double> xis = {0.0001};
-            //#pragma omp parallel for
-            //for (int i=0; i<xis.size(); ++i) {
-                auto xi = vm["SingleRateHistory"].as<double>();
-                double frequency = 5;
-                single_rate_sine_history(frequency, xi, delta);
-            //}
+            std::vector<long double> xis = {0.05};
+            #pragma omp parallel for
+            for (int i=0; i<xis.size(); ++i) {
+                auto xi = xis[i];
+                double const delta = 0.5;
+                double frequency = 15;
+                double const pressure = 1500;
+                single_rate_sine_history(frequency, pressure, xi, delta);
+            }
+
+            // #pragma omp parallel for
+            // for (int i=0; i<deltas.size(); ++i) {
+            //     auto xi = 0.05;
+            //     double const delta = deltas[i];
+            //     double frequency = 15;
+            //     double const pressure = 1500;
+            //     single_rate_sine_history(frequency, pressure, xi, delta);
+            // }
+
+            // std::vector<double> pressures = {10, 25, 100};
+            // #pragma omp parallel for
+            // for(int i=0; i < pressures.size(); ++i) {
+            //     double const pressure = pressures[i];
+            //     double const frequency = 15.0;
+            //     double const delta = 1.0;
+            //     double const damping_ratio = 0.05;
+            //     double const evolve_rate = 100;
+                
+            //     hertz_evolve(frequency, pressure, delta, damping_ratio, evolve_rate);
+            // }
+
         } else if(vm.count("SingleRatePoincare")) {
             // po::options_description singleratepoincare_desc("SingleRatePoincare options");
             // singleratepoincare_desc.add_options()
@@ -123,6 +146,7 @@ int main(int argc, const char* argv[])
             //double const frequency = vm["HertzRateSine"].as<double>();
 
             std::vector<double> pressures = {10, 100, 1000};
+            //std::vector<double> pressures = {10};
             #pragma omp parallel for
             for(int i=0; i < pressures.size(); ++i) {
                 double const frequency = 15;
@@ -132,25 +156,38 @@ int main(int argc, const char* argv[])
                 hertz_rate_sine_slip(frequency, delta, xi, pressure);
             }
 
-            // std::for_each(std::execution::par_unseq, 
-            // frequencies.begin(), 
-            // frequencies.end(), [delta](double frequency) {
-            //     hertz_rate_sine_slip(frequency, delta);
-            // });
+            // #pragma omp parallel for
+            // for(int i=0; i < pressures.size(); ++i) {
+            //     double const frequency = 15;
+            //     double const xi = 0.15;
+            //     double const delta = 1.0;
+            //     double const pressure = pressures[i];
+            //     hertz_rate_sine_slip(frequency, delta, xi, pressure);
+            // }
+
+            // #pragma omp parallel for
+            // for(int i=0; i < pressures.size(); ++i) {
+            //     double const frequency = 15;
+            //     double const xi = 0.05;
+            //     double const delta = 5.0;
+            //     double const pressure = pressures[i];
+            //     hertz_rate_sine_slip(frequency, delta, xi, pressure);
+            // }
         } else if (vm.count("input")) {
             std::string const& file = vm["input"].as<std::string>();
             std::cout << "Running on input-file " << file << "\n";
         } else if (vm.count("HertzEvolve")) {
 
-            std::vector<double> deltas = {0.5, 5.0};
+            std::vector<double> pressures = {8, 10, 25, 100};
             #pragma omp parallel for
-            for(int i=0; i < deltas.size(); ++i) {
+            for(int i=0; i < pressures.size(); ++i) {
+                double const pressure = pressures[i];
                 double const frequency = 15.0;
-                double const delta = deltas[i];
+                double const delta = 1.0;
                 double const damping_ratio = 0.05;
-                double const evolve_rate = 0.01;
+                double const evolve_rate = 0.0005;
                 
-                hertz_evolve(frequency, delta, damping_ratio, evolve_rate);
+                hertz_evolve(frequency, pressure, delta, damping_ratio, evolve_rate);
             }
         }
     } catch (const po::error& ex) {

@@ -47,12 +47,11 @@ struct HertzRateSine {
     // }
 
     inline double scale_friction(double const& vrel) const {
-        //return 1.0/std::abs(1.0 + delta*vrel);  ERROR
         return 1.0/(1.0 + delta*std::abs(vrel));
     }
 
     inline double friction(double const& vrel, double const& extra_cof) const {
-        //return 1.0/std::abs(1.0 + delta*vrel);  ERROR
+        // TODO: Clean up, rename etc.
         double const kinetic_cof = cof_kinetic + extra_cof;
         double const static_cof = cof_static + extra_cof;
         return kinetic_cof + (static_cof - kinetic_cof)/(1.0 + delta*std::abs(vrel));
@@ -80,6 +79,7 @@ struct HertzRateSine {
     void set_roughness(double const& scale);  // Gaussian 0-mean distribution scaling according to peak pressure
     void damping_ratio(double const ratio_lowest, double const ratio_highest);
     void stiffness_damping(double const frequency, double const ratio);
+    void rayleigh_coefficients(double const xi1, double const xi2);
 };
 
 auto calculate_hertz_rate_sine(
@@ -101,6 +101,7 @@ void hertz_rate_sine_slip(
 
 void hertz_evolve(
     double const frequency, 
+    double const pressure,
     double const delta, 
     double const damping_ratio,
     double const evolve_rate);

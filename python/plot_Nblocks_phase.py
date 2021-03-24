@@ -6,7 +6,7 @@ from scipy.signal import find_peaks
 from math import pi
 
 def main(dof=50):
-    file = "data/mdof/mdof_slip_history15.000000_P15.000000_xi0.100000.csv"
+    file = "data/mdof/mdof_slip_history_f15.000000_P25.000000_xi0.050000_del1.000000.csv"
     frequency = 15
     displacement = 0.01
     df = pd.read_csv(file)

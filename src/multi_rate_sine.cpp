@@ -80,7 +80,7 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
         dxdt(1) = 1.0/m*(external_force - friction_force);
     }
 
-    dxdt(2) = evolve_cof*std::abs(x(0) - belt_position);
+    dxdt(2) = evolve_cof*std::abs(shear_force(x, 0)*(x(0) - belt_position));  // TODO Rather based on shear work?
 
     // Loop over interiour blocks
     if (N > 1) {
@@ -106,7 +106,7 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
                 dxdt(3*i+1) = 1.0/m*(external_force - friction_force);
             }
 
-            dxdt(3*i+2) = evolve_cof*std::abs(x(3*i) - belt_position);
+            dxdt(3*i+2) = evolve_cof*std::abs(shear_force(x, i)*(x(3*i) - belt_position));
         }
 
         // Right-end block  // TODO: Check damping coefficients
@@ -129,7 +129,7 @@ auto HertzRateSine::slope(Vec const& x) const -> Vec
             double const friction_force = friction(relative_velocity, x(3*N-1))*pressure(N-1)*sgn(relative_velocity);
             dxdt(3*N-2) = 1.0/m*(external_force - friction_force);
         }
-        dxdt(3*N-1) = evolve_cof*std::abs(x(3*N-3) - belt_position);
+        dxdt(3*N-1) = evolve_cof*std::abs(shear_force(x, N)*(x(3*N-3) - belt_position));
     }
 
     dxdt(3*N) = 1;  // dt/dt == 1
@@ -227,7 +227,6 @@ auto HertzRateSine::resultant_friction_force(Vec const& state) const -> double
 auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
 {
     /*
-    TODO: Irradicate behaviour when natural frequency band is wide! Why?
     TODO: Rename to friction_force
     */
     double const& time = x(3*N);
@@ -235,8 +234,6 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
     double const belt_velocity = velocity_at_time(time);
     double const belt_acceleration = -std::pow(2.0*M_PI*f, 2.0)*d*std::sin(2.0*M_PI*f*time);
     double const relative_velocity = x(3*block+1) - belt_velocity; 
-
-    //return k0*x(3*block) + (alpha*m + beta*k0)*x(3*block+1);
 
     double external_force = 0;
     if (block == 0) {  // Left end
@@ -258,10 +255,8 @@ auto HertzRateSine::shear_force(Vec const& x, int block) const -> double
         double const stick_force = external_force + m*belt_acceleration;
         if(std::abs(stick_force) <= friction_limit) {
             return -stick_force; //*sgn(external_force + m*belt_acceleration);
-            //return m*belt_acceleration;
         } else {
             return -friction_limit*sgn(external_force);
-            //return external_force - friction_limit*sgn(external_force);
         }
     } else {
         double const kinetic_friction = friction(relative_velocity, x(3*block+2))*pressure(block)*sgn(relative_velocity);
@@ -399,12 +394,28 @@ void HertzRateSine::stiffness_damping(double const frequency, double const ratio
     stiffness).
 
     C = alpha * M + beta * K
+    xi = 0.5 * beta * omega
+    beta = 2xi/omega = 2 xi /(2*pi f) = xi(pi * f)
 
     TODO: Verify coeffients
 
     */
     this->alpha = 0.0;
     this->beta = ratio / (M_PI*frequency);
+}
+
+
+void HertzRateSine::rayleigh_coefficients(double const xi1, double const xi2)
+{
+    /*
+    Set Rayleigh damping coefficients according to damping ratio for first natural frequency
+    and last natural frequency.
+    */
+    auto const w1 = lowest_natural_frequency();
+    auto const w2 = highest_natural_frequenc();
+    double const denom = std::pow(w2, 2.0) - std::pow(w1, 2.0);
+    this->alpha = (2.0*w1*w2)/denom*(w2*xi1-w1*xi2);
+    this->beta = 2.0/denom*(w2*xi2 - w1*xi1);
 }
 
 
@@ -486,11 +497,11 @@ void hertz_rate_sine_slip(
     int const num_blocks = 100;
     int const num_free_blocks = 5;  // On each side
     //double const pressure = 150; 
-    double transient_time = 100/frequency;
+    double transient_time = 500/frequency;
     double const simulation_time = 2;
     int const write_frequency = 100;
     double const stiffness = 1e5;
-    double const mass = 0.05/100;  // Per block
+    double const mass = 0.05/num_blocks;
     double const cof_static = 0.75;
     double const cof_kinetic = 0.5;
     //double const delta = 1.0;
@@ -499,28 +510,29 @@ void hertz_rate_sine_slip(
     HertzRateSine system(num_blocks, pressure, num_free_blocks);  // TODO make into builder pattern
     system.f = frequency;
     system.k0 = stiffness/num_blocks;
-    system.k = system.k0*num_blocks;
+    system.k = stiffness;
     system.m = mass;
     system.cof_static = cof_static;
     system.cof_kinetic = cof_kinetic;
     system.delta = delta;
     
     double const first_natural_frequency = system.lowest_natural_frequency() / (2*M_PI);
-    system.stiffness_damping(first_natural_frequency, damping_ratio);
+    //system.stiffness_damping(first_natural_frequency, damping_ratio);
+    system.rayleigh_coefficients(0.01, 0.05);
     
     auto state = system.get_initial();
     
     //writeToCSVfile("mdof/P1200/pressure_profile", system.pressure);
 
-    std::string const output_history = "mdof/stiff_mdof_history_P" + std::to_string(pressure)+".csv"; //"mdof/mdof_slip_history_f" + std::to_string(frequency) 
-                                //   + "_P" + std::to_string(pressure)
-                                //   + "_xi" + std::to_string(damping_ratio)
-                                //   + "_del"+ std::to_string(delta) + ".csv";
+    std::string const output_history = "mdof/mass_damped/mdof_slip_history_f" + std::to_string(frequency) 
+                                   + "_P" + std::to_string(pressure)
+                                   + "_xi" + std::to_string(damping_ratio)
+                                   + "_del"+ std::to_string(delta) + ".csv";
 
-    std::string const output_loop = "mdof/stiff_fretting_loop_P" + std::to_string(pressure)+".csv"; //"mdof/mdof_fretting_loop_f" + std::to_string(frequency)
-                                    // + "_P" + std::to_string(pressure)
-                                    // + "_xi" + std::to_string(damping_ratio)
-                                    // + "_del"+ std::to_string(delta) +".csv";
+    std::string const output_loop = "mdof/mass_damped/mdof_fretting_loop_f" + std::to_string(frequency)
+                                     + "_P" + std::to_string(pressure)
+                                     + "_xi" + std::to_string(damping_ratio)
+                                     + "_del"+ std::to_string(delta) +".csv";
 
     std::string const file_header = "f:" + std::to_string(frequency)
                     + ",xi:" + std::to_string(damping_ratio)
@@ -678,6 +690,7 @@ void hertz_rate_sine_roughness(double const frequency, double const ratio, doubl
 
 void hertz_evolve(
     double const frequency, 
+    double const pressure,
     double const delta, 
     double const damping_ratio,
     double const evolve_rate)
@@ -686,15 +699,16 @@ void hertz_evolve(
     Calculates evolving fretting loops at given snapshots.
     */
     double const time_step = 1e-7;
-    int num_loops = 10;
-    double const time_difference = 10;
-    double transient_time = 100/frequency;
+    int num_steps = 5;
+    int num_loops = 5;
+    double const time_difference = 100;
+    double transient_time = 50/frequency;
     double const simulation_time = 10;
-    int const write_frequency = 100;
+    int const write_frequency = 10;
 
     int const num_blocks = 100;
     int const num_free_blocks = 5;  // On each side
-    double const pressure = 15; 
+    //double const pressure = 15; 
     double const stiffness = 1e5;
     double const mass = 0.05/100;  // Per block
     double const cof_static = 0.75;
@@ -706,18 +720,19 @@ void hertz_evolve(
     HertzRateSine system(num_blocks, pressure, num_free_blocks);  // TODO make into builder pattern
     system.f = frequency;
     system.k0 = stiffness/num_blocks;
-    system.k = system.k0;
+    system.k = stiffness;  // TODO: Increase stiffness with N??
     system.m = mass;
     system.cof_static = cof_static;
     system.cof_kinetic = cof_kinetic;
     system.delta = delta;
-    system.evolve_cof = evolve_rate * time_step;
+    system.evolve_cof = evolve_rate;
     
     double const first_natural_frequency = system.lowest_natural_frequency() / (2*M_PI);
-    system.stiffness_damping(first_natural_frequency, stiffness_damping_ratio);
-    system.set_roughness(roughness);
+    //system.stiffness_damping(first_natural_frequency, stiffness_damping_ratio);
+    //system.set_roughness(roughness);
+    system.rayleigh_coefficients(0.01, 0.05);
 
-    writeToCSVfile("mdof/evolve/pressure_profile_"+std::to_string(roughness)+".csv", system.pressure);
+    //writeToCSVfile("mdof/evolve/pressure_profile_"+std::to_string(roughness)+".csv", system.pressure);
     
     auto state = system.get_initial();
 
@@ -726,6 +741,7 @@ void hertz_evolve(
     //                               + "_xi" + std::to_string(stiffness_damping_ratio)+".csv";
 
     std::string const output_loop = "mdof/evolve/fretting_loop_f" + std::to_string(frequency)
+                                    + "_p" + std::to_string(pressure)
                                     + "_del" + std::to_string(system.delta)
                                     + "_xi" + std::to_string(stiffness_damping_ratio)+".csv";
 
@@ -743,11 +759,11 @@ void hertz_evolve(
                     + ",trans_time:" + std::to_string(transient_time)
                     + ",num_loops:" + std::to_string(num_loops);
     
-    int const period_steps = (int)(1.0/(time_step * frequency));
-    int const num_saves = (int)(num_loops*period_steps/write_frequency);
+    int const period_steps = (int)(1.0/(time_step * frequency)) + 1;
+    int const num_saves = (int)(num_loops*num_steps*period_steps/write_frequency)+0.5;
 
     //Eigen::MatrixXd storage = Eigen::MatrixXd::Zero(num_saves, 5);
-    Eigen::MatrixXd fretting_map = Eigen::MatrixXd::Zero(num_saves, 4);
+    Eigen::MatrixXd fretting_map = Eigen::MatrixXd::Zero(num_saves, 5);
 
     std::cout << "Calculating evolving fretting loop \n";
     std::cout << "Settings: " << file_header << "\n";
@@ -765,23 +781,24 @@ void hertz_evolve(
         state += step_rk4(system, state, time_step);
     }
 
-    int const simulation_steps = (int)(simulation_time/time_step);
     int j = 0;
-    for (int i = 0; i < num_loops; ++i) {
+    for (int i = 0; i < num_steps; ++i) {
         double wait_time = 0.0;
         while (wait_time < time_difference) {
             state += step_rk4(system, state, time_step);
             wait_time += time_step;
         }
         
-        for (int k=0; k < period_steps; ++k) {
+        for (int k=0; k < num_loops*period_steps; ++k) {
+            if(j == fretting_map.rows()-1) break;
             if(k % write_frequency == 0) {
                 double const& time = state(3*num_blocks);
                 double const pad_pos = system.position_at_time(time);
-                fretting_map(j,0) = system.resultant_shear_force(state);
-                fretting_map(j,1) = pad_pos;
-                fretting_map(j,2) = state(3*(system.num_free_blocks + 1)+2);      // Friction at edge
-                fretting_map(j,3) = state(3*num_blocks/2+2);                      // Friction at center
+                fretting_map(j,0) = time;
+                fretting_map(j,1) = system.resultant_shear_force(state);
+                fretting_map(j,2) = state(3*(system.num_free_blocks + 1)+2);      // Friction at edge¨
+                fretting_map(j,3) = state(3*(int)(num_blocks/4)+2);
+                fretting_map(j,4) = state(3*num_blocks/2+2);                      // Friction at center
                 j += 1;
             }
 
@@ -789,6 +806,7 @@ void hertz_evolve(
         }
 
     }
+    std::cout << "j: " << j << ", fretting_map.rows():" << fretting_map.rows() << "\n";
 
     std::cout << "Storing fretting loop for steps in file " << output_loop << ".\n";
     //writeToCSVfile(output_history, storage, file_header);
