@@ -1,18 +1,10 @@
 # Fretting dynamics
-Simulating various friction systems
+Simulating various friction systems. Note that this is very much a work in progress; use on own risk.
 
-Current goal: Find partial-slip curves. Introduce friction evolution and "noise" to pressure and see evolution of partial-slip.
-
-Plan:
-- FFT of total shear force
-- Implement friction law
-- Study evolution, find some case of shakedown
-- Implement random noise to contact pressure based on wavenumber and Ra?
-- Study contact evolution
-- Perform Monte Carlo-simulation of friction to study shakedown
+Current features: Simulates 1-dimensional friction chains, like Burridge-Knopoff systems. Calculates friction evolution and "noise" to pressure and see evolution of partial-slip. Various simplistic tools from chaos theory to study state space orbits etc.
 
 ## TODO
-- [ ] Write test cases
+- [ ] Write test cases (fuzzing?)
 - [X] 1DOF rate-dependent friction
   - [X] Rate-dependent friction
   - [X] Poincaré maps
@@ -29,8 +21,9 @@ Plan:
 - [ ] HertzRateSine
   - [X] Poincare sections
   - [X] Slip history and FFT
-  - [ ] Roughness (in pressure)
+  - [ ] Roughness (in pressure), e.g. using Ra/Rz
 - [ ] Monte-Carlo simulation
+- [ ] Change to Conan-based build?
 
 ## Design Philosophies
 - Const and constexpr/eval of as much as possible
@@ -41,4 +34,4 @@ Plan:
 
 
 ## Licence
-Free or whatever?
+Free or whatever? GPL
